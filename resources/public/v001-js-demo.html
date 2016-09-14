@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <svg id="svg" width="500" height="500"></svg>
+        
+        <div id="pen-options">
+            <input id="color-picker" type="color"  value="#000000" />
+            <input id="size-picker" type="range" min="1" max="31" value="3" step="3" />
+            <svg width="100" height="100" style="vertical-align: middle;">
+                <circle id="pen-example" cx="50" cy="50" r="3"></circle>
+            </svg>
+        </div>
+        
+        <script>
+         var svg = document.getElementById('svg')
+         var colorPicker = document.getElementById('color-picker')
+         var sizePicker = document.getElementById('size-picker')
+         var penExample = document.getElementById('pen-example')
+
+         var svgNS = svg.namespaceURI;
+         
+         var isMouseDown = false;
+         var penRadius = sizePicker.value;
+         var penColor = colorPicker.value;
+
+         function enableMouseMoveCapture (event) {
+             isMouseDown = true;
+             svg.appendChild(eventToSvgCircle(event))
+         }
+         function disableMouseMoveCapture (event) {
+             isMouseDown = false;
+         }
+         function captureMouseMove (event) {
+             if(isMouseDown) {
+                 console.log(event);
+                 svg.appendChild(eventToSvgCircle(event))
+             }
+         }
+
+         function eventToSvgCircle (event) {
+             var circle = document.createElementNS(svgNS,'circle');
+             
+             circle.setAttribute('cx', event.clientX);
+             circle.setAttribute('cy', event.clientY);
+             circle.setAttribute('r', penRadius);
+             circle.setAttribute('fill', penColor);
+             
+             return circle;
+         }
+
+         function displayCoordinate (event) {
+             console.log(event)
+             svg.appendChild(eventToSvgCircle(event))
+         }
+
+         function clearSvg (svgElement) {
+             while (svgElement.firstChild) {
+                 svgElement.removeChild(svgElement.firstChild);
+             }
+         }
+
+         svg.addEventListener('mousedown', enableMouseMoveCapture)
+         svg.addEventListener('mouseup', disableMouseMoveCapture)
+         svg.addEventListener('mousemove', captureMouseMove)
+
+         colorPicker.addEventListener('change', function(event) {
+             console.log(event)
+             console.log(event.target.value)
+             penColor = event.target.value;
+             refreshPenExample(penExample, penRadius, penColor)
+         })
+
+         sizePicker.addEventListener('change', function(event) {
+             console.log(event)
+             console.log(typeof event.target.value)
+             penRadius = parseInt(event.target.value)
+             refreshPenExample(penExample, penRadius, penColor)
+         })
+
+         function refreshPenExample (circle, radius, color) {
+             circle.setAttribute('r', radius);
+             circle.setAttribute('fill', color);
+         }
+
+         var keyboardMappings = {
+             'c': { 
+                 doc: "Clear the svg of child elements",
+                 fn: clearSvg,
+                 args: [svg]
+             }
+         }
+
+         document.onkeypress = function(e) {
+             e = e || window.event;
+             var charCode = (typeof e.which == "number") ? e.which : e.keyCode;
+             if (charCode) {
+                 var c = String.fromCharCode(charCode)
+                 if (keyboardMappings[c]) {
+                     var mapping = keyboardMappings[c]
+                     mapping["fn"].apply(null, mapping["args"])
+                 }
+             }
+         };
+        </script>
+    </body>
+</html>
