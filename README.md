@@ -29,13 +29,13 @@ lein cljsbuild once
 
 Run the web server (which serves resources/public)
 ```
-lein ring server-headless
+lein run
 ```
 
 Then, just go to either of the links
 
-http://localhost:3000/v001-js-demo.html
-http://localhost:3000/v002-cljs-demo.html
+http://localhost:5000/v001-js-demo.html
+http://localhost:5000/v002-cljs-demo.html
 
 The two demos should show the evolution, and I might follow up with a
 blog about my insights in doing the migration.
