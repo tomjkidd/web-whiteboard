@@ -4,9 +4,11 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.9.229"]
                  [org.clojars.tomjkidd/carafe "0.1.0-SNAPSHOT"]
+                 [info.sunng/ring-jetty9-adapter "0.9.6-SNAPSHOT"]
                  [ring "1.5.0"]
                  [compojure "1.5.1"]
-                 [ring/ring-defaults "0.2.1"]]
+                 [ring/ring-defaults "0.2.1"
+                  :exclusions [javax.servlet/servlet-api]]]
   :jvm-opts ^:replace ["-Xmx1g" "-server"]
   :plugins [[lein-npm "0.6.1"]
             [lein-cljsbuild "1.1.4"]
@@ -26,6 +28,9 @@
                  :source-map true}}]}
 
   :ring {:handler web-whiteboard.handler/app}
-  :profile
+  :main ^:skip-aot web-whiteboard.web
+  :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
-                        [ring/ring-mock "0.3.0"]]}})
+                        [ring/ring-mock "0.3.0"]]}
+   :websocket-example
+   {:main ^:skip-aot web-whiteboard.prototyping.websockets.simple-server}})
