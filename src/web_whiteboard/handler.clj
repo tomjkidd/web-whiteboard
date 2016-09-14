@@ -1,11 +1,11 @@
 (ns web-whiteboard.handler
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
-
-(use 'ring.middleware.resource
-     'ring.middleware.content-type
-     'ring.middleware.not-modified)
+            [ring.middleware
+             [resource :refer [wrap-resource]]
+             [content-type :refer [wrap-content-type]]
+             [not-modified :refer [wrap-not-modified]]
+             [defaults :refer [wrap-defaults site-defaults]]]))
 
 (defroutes app-routes
   (GET "/" [] "Hello World")
