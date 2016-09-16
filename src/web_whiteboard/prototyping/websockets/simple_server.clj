@@ -1,7 +1,12 @@
 (ns web-whiteboard.prototyping.websockets.simple-server
   "A simple example of how to create a websocket handler"
   (:gen-class)
-  (:require  [ring.adapter.jetty9 :as jetty]))
+  (:require  [ring.adapter.jetty9 :as jetty]
+             [ring.middleware
+             [resource :refer [wrap-resource]]
+             [content-type :refer [wrap-content-type]]
+             [not-modified :refer [wrap-not-modified]]
+             [defaults :refer [wrap-defaults site-defaults]]]))
 
 ;; This is based on the [example code](https://github.com/sunng87/ring-jetty9-adapter/blob/master/examples/rj9a/websocket.clj) provided in the ring-jetty9-adapter source
 
@@ -12,6 +17,7 @@
                  (println ":on-connect ws: " (str ws)))
    :on-text (fn [ws text]
               (println ":on-text ws: " (str ws \newline text))
+              ;(println (jetty/req-of ws))
               (jetty/send! ws text))
    :on-close (fn [ws status-code reason]
                (println ":on-close ws: " (str ws \newline status-code \newline reason)))
@@ -26,7 +32,13 @@
 (defn websocket-reject [req]
   {:error {:code 403 :message "Forbidden"}})
 
+(def app
+  (-> (wrap-defaults simple-app site-defaults)
+      (wrap-resource "public")
+      (wrap-content-type)
+      (wrap-not-modified)))
+
 (defn -main [& args]
-  (jetty/run-jetty simple-app {:port 5000 :websockets {"/echo" echo-handler
-                                                       "/accept" websocket-accept
-                                                       "/reject" websocket-reject}}))
+  (jetty/run-jetty app {:port 5000 :websockets {"/echo" echo-handler
+                                                "/accept" websocket-accept
+                                                "/reject" websocket-reject}}))
