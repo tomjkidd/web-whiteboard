@@ -9,44 +9,103 @@
              [defaults :refer [wrap-defaults site-defaults]]]
              [cognitect.transit :as transit]))
 
-(import [java.io ByteArrayInputStream]
+(import [java.io ByteArrayInputStream ByteArrayOutputStream]
         [java.nio.charset StandardCharsets])
-
-
-;; This is based on the [example code](https://github.com/sunng87/ring-jetty9-adapter/blob/master/examples/rj9a/websocket.clj) provided in the ring-jetty9-adapter source
 
 (defn simple-app [req] {:body (str "<h1>Http request works</h1>" req) :status 200})
 
-;; NOTE: on-connect and on-close should let the server know which clients are actively connected
-(def echo-handler
-  {:on-connect (fn [ws]
-                 (println ":on-connect ws: " (str ws)))
-   :on-text (fn [ws text]
-              
-              (let [source (-> (.getBytes text StandardCharsets/UTF_8)
-                          (ByteArrayInputStream.))
-                    r (transit/reader source :json)
-                    data (transit/read r)]
-                (println ":on-text ws: " (str ws \newline data))
-                                        ;(println (jetty/req-of ws))
-                (jetty/send! ws text)))
-   :on-close (fn [ws status-code reason]
-               (println ":on-close ws: " (str ws \newline status-code \newline reason)))
-   :on-error (fn [ws e]
-               )
-   :on-bytes (fn [ws bytes offset len]
-               )})
-
 ;; TODO: Provide different log-levels so that the server can be quiet or chatty
-(def default-server-options
-  {:ws-timeout-sec 10
-   :log-level :info})
+(defn create-app-state
+  []
+  (atom {:port 5000
+         :clients {}
+         :whiteboards {}
+         :ws-timeout-sec 60
+         :log-level :info}))
 
-(defn websocket-accept [req]
-  echo-handler)
+(def app-state
+  (create-app-state))
 
-(defn websocket-reject [req]
-  {:error {:code 403 :message "Forbidden"}})
+(defn register-handler
+  "Handle a :register event to register a potentially new client and whiteboard"
+  [app-state ws {:keys [client-id whiteboard-id]}]
+  (println (str "ws1: " ws))
+  (let [s @app-state
+        client (get-in s [:clients client-id] {:client-id client-id
+                                               :ws ws})
+        whiteboard (get-in s [:whiteboards whiteboard-id] {:whiteboard-id whiteboard-id
+                                                           :clients {}})
+        updated-whiteboard (assoc-in whiteboard [:clients client-id] client-id)]
+    (swap! app-state (fn [prev]
+                       (-> (assoc-in s [:clients client-id] client)
+                           (assoc-in [:whiteboards whiteboard-id] updated-whiteboard))))))
+
+(defn pen-move-handler
+  "Handle a :pen-move message to publish it to other clients"
+  [app-state ws {:keys [client-id whiteboard-id data] :as msg}]
+  (let [s @app-state
+        client (get-in s [:clients client-id])
+        whiteboard (get-in s [:whiteboards whiteboard-id])
+        valid? (not (or (nil? client) (nil? whiteboard)))]
+    (when (not valid?)
+      (println "Invalid message received by pen-move-handler, ignoring..."))
+
+    (when valid?
+      (let [client-ids (-> (get-in s [:whiteboards whiteboard-id :clients])
+                           (keys))
+            filtered (filter #(not= client-id %) client-ids)
+            wss (map #(get-in s [:clients % :ws]) filtered)
+            out (when (not= 0 (count wss))
+                  (ByteArrayOutputStream. 4096))
+            tw (when (not (nil? out))
+                 (transit/writer out :json))
+            raw-msg (when (not (nil? tw))
+                      (transit/write tw msg)
+                      (.toString out))]
+        (doall (map #(jetty/send! % raw-msg) wss))))))
+
+(defn unknown-handler
+  "Do something with a message with an unknown type"
+  [app-state ws msg]
+  (println (str "Unknown type: (" (:type msg) "). Ignoring message.")))
+
+(def dispatch-map
+  {:register register-handler
+   :pen-move pen-move-handler
+   :default unknown-handler})
+
+(defn- create-dispatch-handler
+  "Route an incoming Transit message to the proper handler"
+  [app-state]
+  (fn [ws msg]
+    (let [t (:type msg)
+          handler (get dispatch-map t unknown-handler)]
+      (handler app-state ws msg))))
+
+;; NOTE: on-connect and on-close should let the server know which clients are actively connected
+;; TODO: Cleanup :ws references on-close
+(defn- create-ws-handler
+  [app-state]
+  (let [dispatch-handler (create-dispatch-handler app-state)]
+    {:on-connect (fn [ws]
+                   (println ":on-connect ws: " (str ws)))
+     :on-text (fn [ws text]
+
+                (let [source (-> (.getBytes text StandardCharsets/UTF_8)
+                                 (ByteArrayInputStream.))
+                      r (transit/reader source :json)
+                      data (transit/read r)]
+                  (println ":on-text ws: " (str ws \newline data))
+                  (dispatch-handler ws data)
+                                        ;(println (jetty/req-of ws))
+                  ;; TODO: Can this be removed now?
+                  (jetty/send! ws text)))
+     :on-close (fn [ws status-code reason]
+                 (println ":on-close ws: " (str ws \newline status-code \newline reason)))
+     :on-error (fn [ws e]
+                 )
+     :on-bytes (fn [ws bytes offset len]
+                 )}))
 
 (def app
   (-> (wrap-defaults simple-app site-defaults)
@@ -54,10 +113,11 @@
       (wrap-content-type)
       (wrap-not-modified)))
 
-(defn -main [& args]
-  (let [{:keys [ws-timeout-sec]} default-server-options]
-    (jetty/run-jetty app {:port 5000
-                          :websockets {"/echo" echo-handler
-                                       "/accept" websocket-accept
-                                       "/reject" websocket-reject}
+(defn run [app-state]
+  (let [{:keys [port ws-timeout-sec]} @app-state]
+    (jetty/run-jetty app {:port port
+                          :websockets {"/echo" (create-ws-handler app-state)}
                           :ws-max-idle-time (* ws-timeout-sec 1000)})))
+
+(defn -main [& args]
+  (run (create-app-state)))

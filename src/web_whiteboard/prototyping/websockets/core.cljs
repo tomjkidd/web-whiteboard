@@ -60,6 +60,10 @@
   [app-state msg]
   (.log js/console (str "register-handler called" msg @app-state)))
 
+(defn pen-move-handler
+  [app-state msg]
+  (.log js/console (str "pen-move-handler" msg @app-state)))
+
 (defn open-handler
   [app-state msg]
   (swap! app-state (fn [prev] (assoc prev :connected true))))
@@ -133,7 +137,13 @@
          [:div
           {:width "100%"
            :height "100%"}
-          [[:input
+          [[:div
+            {:id "client-id"}
+            [ [:text {} (get-in @app-state [:client :id])] ]]
+           [:div
+            {:id "whiteboard-id"}
+            [ [:text {} (get-in @app-state [:whiteboard :id])] ]]
+           [:input
             {:id "ws-send"
              :type "text"
              :onchange (fn [e]
@@ -141,6 +151,17 @@
                            (swap! app-state (fn [prev]
                                               (assoc prev :msg new-val)))))}
             []]
+           [:button
+            {:onclick
+             (fn [_]
+               (let [src (dom/by-id "ws-send")
+                     e (dom/by-id "whiteboard-id")
+                     new-val (.-value src)]
+                 (swap! app-state (fn [prev]
+                                    (.log js/console new-val)
+                                    (set! (.-innerHTML e) new-val)
+                                    (assoc-in prev [:whiteboard :id] new-val)))))}
+            [[:text {} "Set :whiteboard id"]]]
            [:button
             {:onclick
              (fn [e]
