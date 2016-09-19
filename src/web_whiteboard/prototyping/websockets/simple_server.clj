@@ -36,6 +36,9 @@
    :on-bytes (fn [ws bytes offset len]
                )})
 
+(def default-server-options
+  {:ws-timeout-sec 10})
+
 (defn websocket-accept [req]
   echo-handler)
 
@@ -49,6 +52,9 @@
       (wrap-not-modified)))
 
 (defn -main [& args]
-  (jetty/run-jetty app {:port 5000 :websockets {"/echo" echo-handler
-                                                "/accept" websocket-accept
-                                                "/reject" websocket-reject}}))
+  (let [{:keys [ws-timeout-sec]} default-server-options]
+    (jetty/run-jetty app {:port 5000
+                          :websockets {"/echo" echo-handler
+                                       "/accept" websocket-accept
+                                       "/reject" websocket-reject}
+                          :ws-max-idle-time (* ws-timeout-sec 1000)})))
