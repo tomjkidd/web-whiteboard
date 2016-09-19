@@ -14,3 +14,4 @@ pom.xml
 /resources/public/out/
 /resources/public/js/webwhiteboard.js
 /repl/
+.lein-failures

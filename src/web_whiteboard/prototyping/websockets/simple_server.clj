@@ -17,6 +17,7 @@
 
 (defn simple-app [req] {:body (str "<h1>Http request works</h1>" req) :status 200})
 
+;; NOTE: on-connect and on-close should let the server know which clients are actively connected
 (def echo-handler
   {:on-connect (fn [ws]
                  (println ":on-connect ws: " (str ws)))
@@ -36,8 +37,10 @@
    :on-bytes (fn [ws bytes offset len]
                )})
 
+;; TODO: Provide different log-levels so that the server can be quiet or chatty
 (def default-server-options
-  {:ws-timeout-sec 10})
+  {:ws-timeout-sec 10
+   :log-level :info})
 
 (defn websocket-accept [req]
   echo-handler)

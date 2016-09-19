@@ -36,17 +36,26 @@
     :onmessage (fn [event]
                  (data->chan (recv event)))}))
 
+;; TODO: Integrate the queue for if send is called while a websocket connection is still
+;; being established so that nothing is dropped
+;; TODO: Work the log-index into interactions with the server so that server can push
+;; notifications for what happened while disconnected
 (def app-state
   (atom {:msg "default message"
          :server {:ws (create-ws (fn [w] (send w {:type :ignore
-                                           :msg "Message from client"})))}
+                                           :msg "Message from client"})))
+                  :queue []}
          :client {:id (str "client:" (random-uuid))}
          :whiteboard {:id (str "whiteboard:" (random-uuid))}
+         :log-index nil
+         :mode :realtime
          :transit {:writer (transit/writer :json)
                    :reader (transit/reader :json)}
          :channels {:ws {:from (chan)}}
          :connected false}))
 
+
+;TODO: register new clients that are also drawing on the whiteboard
 (defn register-handler
   [app-state msg]
   (.log js/console (str "register-handler called" msg @app-state)))
@@ -92,7 +101,7 @@
   (fn [ws msg]
     (let [s @app-state
           tw (get-in s [:transit :writer])]
-      (if (not (= WebSocket/OPEN (.-readyState ws)))
+      (if (not (= (.-OPEN js/WebSocket) (.-readyState ws)))
         (let [new-ws (create-ws (fn [w] (send w msg)))]
           (swap! app-state (fn [prev]
                              (assoc-in prev [:server :ws] new-ws))))
@@ -105,9 +114,25 @@
     (fn [event]
       (transit/read tr event.data))))
 
+(defn event->circle-data
+  "Turn an event with clientX, clientY into circle data"
+  ([event]
+   (event->circle-data event {:r 3
+                              :fill "blue"}))
+  ([event {:keys [r fill]}]
+   (let [shape :circle
+         cx (.-clientX event)
+         cy (.-clientY event)]
+     {:shape shape
+      :cx cx
+      :cy cy
+      :r r
+      :fill fill})))
+
 (def ui (dom/create-element
-         [:span
-          {}
+         [:div
+          {:width "100%"
+           :height "100%"}
           [[:input
             {:id "ws-send"
              :type "text"
@@ -139,7 +164,23 @@
                  (send ws {:type :register
                            :client-id cid
                            :whiteboard-id wid})))}
-            [[:text {} ":register"]]]]]))
+            [[:text {} ":register"]]]
+           [:div
+            {:width "100%"
+             :height "100%"
+             :style "min-height: 500px"
+             :onclick
+             (fn [e]
+               (let [s @app-state
+                     ws (get-in s [:server :ws])
+                     cid (get-in s [:client :id])
+                     wid (get-in s [:whiteboard :id])
+                     ]
+                 (send ws {:type :pen-move
+                           :client-id cid
+                           :whiteboard-id wid
+                           :data (event->circle-data e)})))}
+            [[:text {}  "Test area"]]]]]))
 
 (dom/append
  (dom/by-id "app")
