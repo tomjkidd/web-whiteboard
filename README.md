@@ -41,6 +41,37 @@ Then, just go to either of the links
 The two demos should show the evolution, and I might follow up with a
 blog about my insights in doing the migration.
 
+## Prototyping
+
+I have been playing around and before I wrote the actual code, I wanted to create
+a sandbox that would allow me to quickly create more code for purposes of illustration.
+
+Build the ClojureScript
+
+```
+lein cljsbuild once
+```
+
+Start the prototype server
+
+```
+./scripts/lein-ws-demo-server
+```
+
+Navigate to page
+
+[http://localhost:5000/v003-cljs-ws-demo.html](http://localhost:5000/v003-cljs-ws-demo.html)
+
+Connect a repl
+
+```
+./scripts/brepl
+```
+
+In the demo page, click on the *Connect to REPL* button
+
+NOTE: Remember to use :cljs/quit to quit the REPL in a controlled manner!
+
 ## License
 
 Copyright © 2016 Tom Kidd
