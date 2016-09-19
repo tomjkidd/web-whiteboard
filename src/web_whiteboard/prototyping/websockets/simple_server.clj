@@ -6,19 +6,29 @@
              [resource :refer [wrap-resource]]
              [content-type :refer [wrap-content-type]]
              [not-modified :refer [wrap-not-modified]]
-             [defaults :refer [wrap-defaults site-defaults]]]))
+             [defaults :refer [wrap-defaults site-defaults]]]
+             [cognitect.transit :as transit]))
+
+(import [java.io ByteArrayInputStream]
+        [java.nio.charset StandardCharsets])
+
 
 ;; This is based on the [example code](https://github.com/sunng87/ring-jetty9-adapter/blob/master/examples/rj9a/websocket.clj) provided in the ring-jetty9-adapter source
 
-(defn simple-app [req] {:body "<h1>Http request works</h1>" :status 200})
+(defn simple-app [req] {:body (str "<h1>Http request works</h1>" req) :status 200})
 
 (def echo-handler
   {:on-connect (fn [ws]
                  (println ":on-connect ws: " (str ws)))
    :on-text (fn [ws text]
-              (println ":on-text ws: " (str ws \newline text))
-              ;(println (jetty/req-of ws))
-              (jetty/send! ws text))
+              
+              (let [source (-> (.getBytes text StandardCharsets/UTF_8)
+                          (ByteArrayInputStream.))
+                    r (transit/reader source :json)
+                    data (transit/read r)]
+                (println ":on-text ws: " (str ws \newline data))
+                                        ;(println (jetty/req-of ws))
+                (jetty/send! ws text)))
    :on-close (fn [ws status-code reason]
                (println ":on-close ws: " (str ws \newline status-code \newline reason)))
    :on-error (fn [ws e]

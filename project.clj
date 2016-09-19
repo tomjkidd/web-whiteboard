@@ -8,7 +8,9 @@
                  [ring "1.5.0"]
                  [compojure "1.5.1"]
                  [ring/ring-defaults "0.2.1"
-                  :exclusions [javax.servlet/servlet-api]]]
+                  :exclusions [javax.servlet/servlet-api]]
+                 [com.cognitect/transit-clj "0.8.288"]
+                 [com.cognitect/transit-cljs "0.8.239"]]
   :jvm-opts ^:replace ["-Xmx1g" "-server"]
   :plugins [[lein-npm "0.6.1"]
             [lein-cljsbuild "1.1.4"]
