@@ -19,6 +19,7 @@
                  [org.clojure/tools.logging "0.3.1"]
                  ; TODO: timbre is nice, but is heavy for reloading
                  ;[com.taoensso/timbre "4.7.4"]
+                 [levand/immuconf "0.1.0"]
                  ]
   :jvm-opts ^:replace ["-Xmx1g" "-server"]
   :plugins [[lein-npm "0.6.1"]

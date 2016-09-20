@@ -11,11 +11,18 @@
              [clojure.tools.logging :as log]
              [compojure.core :refer [defroutes GET]]
              [compojure.route :as route]
+             [immuconf.config :as config]
              ;[taoensso.timbre :as log]
              ))
 
 (import [java.io ByteArrayInputStream ByteArrayOutputStream]
         [java.nio.charset StandardCharsets])
+
+(def cfg (config/load "resources/config.edn"
+                               ;"resources/dev.edn"
+                               ;"~/.private/config.edn"
+                               ;"tom-dev.edn"
+                               ))
 
 (defroutes simple-app
   (GET "/" [] "<h1>Http request works</h1")
@@ -24,11 +31,11 @@
 ;; TODO: Provide different log-levels so that the server can be quiet or chatty
 (defn create-app-state
   []
-  (atom {:port 5000
+  (atom {:port (config/get cfg :server :port)
          :clients {}
          :whiteboards {}
-         :ws-timeout-sec 60
-         :log-level :info}))
+         :ws-timeout-sec (config/get cfg :server :ws-timeout-sec)
+         :log-level (config/get cfg :server :log-level)}))
 
 (def app-state
   (create-app-state))
