@@ -41,11 +41,11 @@
                  :source-map true}}]}
 
   :ring {:handler web-whiteboard.handler/app}
-  :main ^:skip-aot web-whiteboard.web
+  :main ^:skip-aot web-whiteboard.server.core
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring/ring-mock "0.3.0"]]
-         :source-paths ["src" "target/classes" "dev"]
-         :main ^:skip-aot user}
+         :source-paths ["dev"]
+         :repl-options {:init-ns user}}
    :websocket-example
    {:main ^:skip-aot web-whiteboard.prototyping.websockets.simple-server}})
