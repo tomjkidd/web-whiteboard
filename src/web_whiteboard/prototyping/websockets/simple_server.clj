@@ -9,13 +9,17 @@
              [defaults :refer [wrap-defaults site-defaults]]]
              [cognitect.transit :as transit]
              [clojure.tools.logging :as log]
+             [compojure.core :refer [defroutes GET]]
+             [compojure.route :as route]
              ;[taoensso.timbre :as log]
              ))
 
 (import [java.io ByteArrayInputStream ByteArrayOutputStream]
         [java.nio.charset StandardCharsets])
 
-(defn simple-app [req] {:body (str "<h1>Http request works</h1>" req) :status 200})
+(defroutes simple-app
+  (GET "/" [] "<h1>Http request works</h1")
+  (route/not-found "<h1>Page not found</h1"))
 
 ;; TODO: Provide different log-levels so that the server can be quiet or chatty
 (defn create-app-state
