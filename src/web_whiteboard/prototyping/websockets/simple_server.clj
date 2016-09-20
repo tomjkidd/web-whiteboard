@@ -12,6 +12,7 @@
              [compojure.core :refer [defroutes GET]]
              [compojure.route :as route]
              [immuconf.config :as config]
+             [com.stuartsierra.component :as component]
              ;[taoensso.timbre :as log]
              ))
 
@@ -19,7 +20,7 @@
         [java.nio.charset StandardCharsets])
 
 (def cfg (config/load "resources/config.edn"
-                               ;"resources/dev.edn"
+                      "resources/dev.edn"
                                ;"~/.private/config.edn"
                                ;"tom-dev.edn"
                                ))
@@ -35,7 +36,8 @@
          :clients {}
          :whiteboards {}
          :ws-timeout-sec (config/get cfg :server :ws-timeout-sec)
-         :log-level (config/get cfg :server :log-level)}))
+         :log-level (config/get cfg :server :log-level)
+         :join? (config/get cfg :server :join?)}))
 
 (def app-state
   (create-app-state))
@@ -128,15 +130,35 @@
       (wrap-not-modified)))
 
 (defn run [app-state]
-  (let [{:keys [port ws-timeout-sec log-level]} @app-state
+  (let [{:keys [port ws-timeout-sec log-level join?]} @app-state
         timestamp-opts {:pattern  "yyyy-MM-dd HH:mm:ss.SSS"
                         :locale   :jvm-default
                         :timezone :jvm-default}]
     ;(log/set-level! log-level)
     ;(log/merge-config! {:timestamp-opts timestamp-opts})
     (jetty/run-jetty app {:port port
+                          :join? join?
                           :websockets {"/echo" (create-ws-handler app-state)}
                           :ws-max-idle-time (* ws-timeout-sec 1000)})))
 
 (defn -main [& args]
   (run (create-app-state)))
+
+(defrecord Server [state]
+  component/Lifecycle
+  (start [component]
+    (swap! (:state component) (fn [prev] (assoc-in prev [:server] (run state))))
+    component)
+  (stop [component]
+    (let [state (:state component)
+          server (:server @state)]
+      (jetty/stop-server server)
+      (swap! state (fn [prev]
+                     (-> (assoc prev :clients {})
+                         (assoc :whiteboards {})
+                         (dissoc :server))))
+      component)))
+
+(defn create-server
+  []
+  (map->Server {:state (create-app-state)}))

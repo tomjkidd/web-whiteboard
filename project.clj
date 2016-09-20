@@ -20,6 +20,7 @@
                  ; TODO: timbre is nice, but is heavy for reloading
                  ;[com.taoensso/timbre "4.7.4"]
                  [levand/immuconf "0.1.0"]
+                 [com.stuartsierra/component "0.3.1"]
                  ]
   :jvm-opts ^:replace ["-Xmx1g" "-server"]
   :plugins [[lein-npm "0.6.1"]
@@ -43,6 +44,8 @@
   :main ^:skip-aot web-whiteboard.web
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
-                        [ring/ring-mock "0.3.0"]]}
+                        [ring/ring-mock "0.3.0"]]
+         :source-paths ["src" "target/classes" "dev"]
+         :main ^:skip-aot user}
    :websocket-example
    {:main ^:skip-aot web-whiteboard.prototyping.websockets.simple-server}})
