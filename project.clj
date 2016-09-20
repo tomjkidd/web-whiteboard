@@ -11,7 +11,15 @@
                   :exclusions [javax.servlet/servlet-api]]
                  [com.cognitect/transit-clj "0.8.288"]
                  [com.cognitect/transit-cljs "0.8.239"]
-                 [org.clojure/core.async "0.2.391"]]
+                 [org.clojure/core.async "0.2.391"]
+                 [log4j/log4j "1.2.16" :exclusions [javax.mail/mail
+                                              javax.jms/jms
+                                              com.sun.jdmk/jmxtools
+                                              com.sun.jmx/jmxri]]
+                 [org.clojure/tools.logging "0.3.1"]
+                 ; TODO: timbre is nice, but is heavy for reloading
+                 ;[com.taoensso/timbre "4.7.4"]
+                 ]
   :jvm-opts ^:replace ["-Xmx1g" "-server"]
   :plugins [[lein-npm "0.6.1"]
             [lein-cljsbuild "1.1.4"]

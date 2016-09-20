@@ -7,7 +7,10 @@
              [content-type :refer [wrap-content-type]]
              [not-modified :refer [wrap-not-modified]]
              [defaults :refer [wrap-defaults site-defaults]]]
-             [cognitect.transit :as transit]))
+             [cognitect.transit :as transit]
+             [clojure.tools.logging :as log]
+             ;[taoensso.timbre :as log]
+             ))
 
 (import [java.io ByteArrayInputStream ByteArrayOutputStream]
         [java.nio.charset StandardCharsets])
@@ -29,7 +32,6 @@
 (defn register-handler
   "Handle a :register event to register a potentially new client and whiteboard"
   [app-state ws {:keys [client-id whiteboard-id]}]
-  (println (str "ws1: " ws))
   (let [s @app-state
         client (get-in s [:clients client-id] {:client-id client-id
                                                :ws ws})
@@ -48,7 +50,7 @@
         whiteboard (get-in s [:whiteboards whiteboard-id])
         valid? (not (or (nil? client) (nil? whiteboard)))]
     (when (not valid?)
-      (println "Invalid message received by pen-move-handler, ignoring..."))
+      (log/warn "Invalid message received by pen-move-handler, ignoring..."))
 
     (when valid?
       (let [client-ids (-> (get-in s [:whiteboards whiteboard-id :clients])
@@ -67,7 +69,7 @@
 (defn unknown-handler
   "Do something with a message with an unknown type"
   [app-state ws msg]
-  (println (str "Unknown type: (" (:type msg) "). Ignoring message.")))
+  (log/warn ":ws:unknown-handler: Unknown type: (" (:type msg) "). Ignoring message."))
 
 (def dispatch-map
   {:register register-handler
@@ -88,20 +90,21 @@
   [app-state]
   (let [dispatch-handler (create-dispatch-handler app-state)]
     {:on-connect (fn [ws]
-                   (println ":on-connect ws: " (str ws)))
+                   (log/debug ":ws:on-connect: " (str ws)))
      :on-text (fn [ws text]
 
                 (let [source (-> (.getBytes text StandardCharsets/UTF_8)
                                  (ByteArrayInputStream.))
                       r (transit/reader source :json)
                       data (transit/read r)]
-                  (println ":on-text ws: " (str ws \newline data))
+                  (log/debug ":ws:on-text: " data)
                   (dispatch-handler ws data)
                                         ;(println (jetty/req-of ws))
                   ;; TODO: Can this be removed now?
                   (jetty/send! ws text)))
      :on-close (fn [ws status-code reason]
-                 (println ":on-close ws: " (str ws \newline status-code \newline reason)))
+                 (log/debug ":ws:on-close: " (str {:status-code status-code
+                                                   :reason reason})))
      :on-error (fn [ws e]
                  )
      :on-bytes (fn [ws bytes offset len]
@@ -114,7 +117,12 @@
       (wrap-not-modified)))
 
 (defn run [app-state]
-  (let [{:keys [port ws-timeout-sec]} @app-state]
+  (let [{:keys [port ws-timeout-sec log-level]} @app-state
+        timestamp-opts {:pattern  "yyyy-MM-dd HH:mm:ss.SSS"
+                        :locale   :jvm-default
+                        :timezone :jvm-default}]
+    ;(log/set-level! log-level)
+    ;(log/merge-config! {:timestamp-opts timestamp-opts})
     (jetty/run-jetty app {:port port
                           :websockets {"/echo" (create-ws-handler app-state)}
                           :ws-max-idle-time (* ws-timeout-sec 1000)})))
