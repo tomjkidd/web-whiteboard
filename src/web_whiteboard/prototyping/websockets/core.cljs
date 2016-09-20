@@ -16,10 +16,29 @@
 (declare send)
 (declare recv)
 
+(def hostname
+  (-> js/window
+      (.-location)
+      (.-hostname)))
+
+(def port
+  (-> js/window
+      (.-location)
+      (.-port)))
+
+(def host
+  (str hostname ":" port))
+
+(def ws-url
+  (str "ws://" host "/echo/"))
+
+(def brepl-url
+  (str "http://" hostname ":9000/repl"))
+
 (defn create-ws
   [init-fn]
   (ws/create-websocket
-   "ws://localhost:5000/echo/"
+   ws-url
    {:onopen (fn [event]
               (let [s @app-state
                     ws (get-in s [:server :ws])
@@ -171,8 +190,7 @@
            [:button
             {:onclick
              (fn [e]
-               (defonce conn
-                 (repl/connect "http://localhost:9000/repl"))
+               (repl/connect brepl-url)
                (println "REPL conn should exist now..."))}
             [[:text {} "Connect to REPL"]]]
            [:button
