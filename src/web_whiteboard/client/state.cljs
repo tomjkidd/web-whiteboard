@@ -2,7 +2,7 @@
   "The state model needed for the client"
   (:require [cognitect.transit :as transit]
             [web-whiteboard.client.handlers.websocket :as hws]
-            [cljs.core.async :refer [chan]]
+            [cljs.core.async :refer [chan mult tap]]
             [clojure.string]))
 
 (defn get-query-params
@@ -78,6 +78,15 @@
                     :ui {:to (chan)}}
          :connected false}))
 
+(defn- configure-chans
+  "Configure the application channels"
+  [app-state]
+  (let [s @app-state
+        ws-chan (get-in s [:channels :ws :from])
+        ui-chan (get-in s [:channels :ui :to])
+        ws-mult (mult ws-chan)]
+    (tap ws-mult ui-chan)))
+
 (defn create-app-state
   "Create the app-state
   
@@ -88,4 +97,5 @@
         websocket (hws/create-ws app-state (fn [_] nil))]
     (swap! app-state (fn [prev]
                        (assoc-in prev [:server :ws] websocket)))
+    (configure-chans app-state)
     app-state))

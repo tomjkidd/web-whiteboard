@@ -26,6 +26,8 @@
                    (when init-fn
                      (init-fn ws))))
        :onerror (fn [err]
+                  ;; TODO: Queue events on error so that they can be
+                  ;; made available once reconnected...
                   (.log js/console (str "Error: " err)))
        :onclose (fn [event]
                   (.log js/console (str "Close: " event))

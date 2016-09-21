@@ -1,7 +1,10 @@
 (ns web-whiteboard.client.ui
   "Responsible for generating the user interface for the client application"
+  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [carafe.dom :as dom]
             [goog.events :as events]
+            [cljs.core.async :as async
+             :refer [>! <! put! chan alts!]]
             [web-whiteboard.client.handlers.websocket :as hws])
   (:import [goog.events EventType KeyHandler KeyCodes]))
 
@@ -169,7 +172,25 @@
                      (when-let [{:keys [fn args]} (keyboard-mappings (.-keyCode e))]
                        (apply fn args))))))
 
+(defn ui-chan-handler
+  "Handle messages to the ui"
+  [app-state data]
+  (.log js/console (str "ui-chan:" data)))
+
+(defn listen-to-ui-chan
+  "Listen for messages coming from the to ui channel"
+  [app-state] 
+  (go
+    (let [s @app-state
+          ch (get-in s [:channels :ui :to])]
+      (loop []
+        (let [data (<! ch)]
+          (do
+            (ui-chan-handler app-state data)
+            (recur)))))))
+
 (defn create-ui
   [app-state]
   (create-drawing-ui app-state)
-  (listen-to-keybindings))
+  (listen-to-keybindings)
+  (listen-to-ui-chan app-state))
