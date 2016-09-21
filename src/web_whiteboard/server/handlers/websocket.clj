@@ -47,7 +47,11 @@
             raw-msg (when (not (nil? tw))
                       (transit/write tw msg)
                       (.toString out))]
-        (doall (map #(jetty/send! % raw-msg) wss))))))
+        ;; TODO: Test that the websocket is still connected before sending the message!
+        ;; If the ws is not connected, create a queue...
+        (doall (map #(try
+                       (jetty/send! % raw-msg)
+                       (catch Exception e (log/warn "TODO: Handle pen-move-handler exception:" (.getMessage e)))) wss))))))
 
 (defn unknown-handler
   "Do something with a message with an unknown type"

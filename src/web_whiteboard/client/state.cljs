@@ -2,7 +2,28 @@
   "The state model needed for the client"
   (:require [cognitect.transit :as transit]
             [web-whiteboard.client.handlers.websocket :as hws]
-            [cljs.core.async :refer [chan]]))
+            [cljs.core.async :refer [chan]]
+            [clojure.string]))
+
+(defn get-query-params
+  "Turn the search segment of a url into a hash-map of query params"
+  [search]
+  (if (empty? search)
+    {}
+    (let [chunks (-> search
+                     (subs 1)
+                     (clojure.string/split #"&"))
+          list-of-pairs (map #(clojure.string/split % #"=") chunks)]
+      (reduce (fn [acc [name val]]
+                (assoc acc (keyword name) val))
+              {}
+              list-of-pairs))))
+
+(def query-params
+  (get-query-params (-> js/window
+                     .-location
+                     .-search)))
+(.log js/console query-params)
 
 (def hostname
   "The client-determined hostname"
@@ -40,14 +61,14 @@
                   :queue []
                   :url ws-url}
          
-         :client {:id (str "client:" (random-uuid))
-                  :ui {:is-mouse-down false
+         :client {:id (get query-params :cid (str "client:" (random-uuid)))
+                  :ui {:is-mouse-down? false
                        :canvas {:id "canvas"}
                        :pen {:color "#0000FF"
                              :radius 3
                              :example-id "pen-example"}}}
          
-         :whiteboard {:id (str "whiteboard:" (random-uuid))}
+         :whiteboard {:id (get query-params :wid (str "whiteboard:" (random-uuid)))}
          
          :log-index nil
          :mode :realtime

@@ -5,6 +5,10 @@
             [web-whiteboard.client.handlers.websocket :as hws])
   (:import [goog.events EventType KeyHandler KeyCodes]))
 
+(def margin
+  "TODO: Get this from the dom"
+  8)
+
 (def keyboard-mappings
   {KeyCodes.C {:doc "Clear the canvas"
                :key "C"
@@ -33,8 +37,8 @@
         radius (:radius pen)]
     (dom/create-element [:circle
                          {:id (random-uuid)
-                          :cx (.-clientX event)
-                          :cy (.-clientY event)
+                          :cx (- (.-clientX event) margin)
+                          :cy (- (.-clientY event) margin)
                           :r radius
                           :fill color}
                          []])))
@@ -55,23 +59,26 @@
 
 (defn pen-event-handler
   "Handle pen event, possibly updating the dom"
-  [app-state event]
-  (let [s @app-state
-        canvas-id (get-ui s [:canvas :id])
-        ;TODO: This could be given many strategies based on the mode...
-        handler (fn [e]
-                  (let [s @app-state
-                        cid (get-in s [:client :id])
-                        wid (get-in s [:whiteboard :id])]
-                    (dom/append (dom/by-id canvas-id)
-                                (create-dot app-state e))
+  ([app-state event]
+   (pen-event-handler app-state event false))
+  ([app-state event override]
+   (let [s @app-state
+         canvas-id (get-ui s [:canvas :id])
+                                        ;TODO: This could be given many strategies based on the mode...
+         handler (fn [e]
+                   (let [s @app-state
+                         cid (get-in s [:client :id])
+                         wid (get-in s [:whiteboard :id])]
+                     (dom/append (dom/by-id canvas-id)
+                                 (create-dot app-state e))
                                         ;TODO: translate type from event
-                    (hws/send app-state {:type :pen-move
-                                         :client-id cid
-                                         :whiteboard-id wid
-                                         :data (event->circle-data app-state event)})))]
-    (when (get-ui s [:is-mouse-down?])
-      (handler event))))
+                     (hws/send app-state {:type :pen-move
+                                          :client-id cid
+                                          :whiteboard-id wid
+                                          :data (event->circle-data app-state event)})))]
+     (when (or override
+               (get-ui s [:is-mouse-down?]))
+       (handler event)))))
 
 (defn change-pen-config
   "Update's the app-state when the pen config changes
@@ -140,7 +147,7 @@
                  (swap! app-state
                         (fn [prev]
                           (assoc-ui prev [:is-mouse-down?] true))
-                        (pen-event-handler app-state e)))
+                        (pen-event-handler app-state e true)))
                :onmouseup
                (fn [e]
                  (swap! app-state
