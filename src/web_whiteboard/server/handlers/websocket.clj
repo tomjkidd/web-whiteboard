@@ -10,6 +10,7 @@
 (defn register-handler
   "Handle a :register event to register a potentially new client and whiteboard"
   [app-state ws {:keys [client-id whiteboard-id]}]
+  (log/info "Registered:" client-id ":" whiteboard-id)
   (let [s @app-state
         client (get-in s
                        [:clients client-id]
