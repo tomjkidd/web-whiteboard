@@ -33,18 +33,14 @@
 
 (defn create-dot
   "Create a circle svg element"
-  [app-state event]
-  (let [s @app-state
-        pen (get-ui s [:pen])
-        color (:color pen)
-        radius (:radius pen)]
-    (dom/create-element [:circle
-                         {:id (random-uuid)
-                          :cx (- (.-clientX event) margin)
-                          :cy (- (.-clientY event) margin)
-                          :r radius
-                          :fill color}
-                         []])))
+  [app-state {:keys [id cx cy r fill]}]
+  (dom/create-element [:circle
+                       {:id id
+                        :cx (- cx margin)
+                        :cy (- cy margin)
+                        :r r
+                        :fill fill}
+                       []]))
 
 (defn event->circle-data
   "Turn an event with clienX, clientY into circle data"
@@ -55,10 +51,18 @@
         r (get-ui s [:pen :radius])
         fill (get-ui s [:pen :color])]
     {:shape :circle
+     :id (random-uuid)
      :cx cx
      :cy cy
      :r r
      :fill fill}))
+
+(defn draw-circle-to-canvas
+  [app-state circle-data]
+  (let [s @app-state
+        canvas-id (get-ui s [:canvas :id])]
+    (dom/append (dom/by-id canvas-id)
+                (create-dot app-state circle-data))))
 
 (defn pen-event-handler
   "Handle pen event, possibly updating the dom"
@@ -71,14 +75,16 @@
          handler (fn [e]
                    (let [s @app-state
                          cid (get-in s [:client :id])
-                         wid (get-in s [:whiteboard :id])]
-                     (dom/append (dom/by-id canvas-id)
-                                 (create-dot app-state e))
-                                        ;TODO: translate type from event
-                     (hws/send app-state {:type :pen-move
-                                          :client-id cid
-                                          :whiteboard-id wid
-                                          :data (event->circle-data app-state event)})))]
+                         wid (get-in s [:whiteboard :id])
+                         circle-data (event->circle-data app-state event)
+                         action {:type :pen-move
+                                 :client-id cid
+                                 :whiteboard-id wid
+                                 :data circle-data}
+                         ui-chan (get-in s [:channels :ui :to])]
+                     (hws/send app-state action)
+                     (go
+                       (>! ui-chan action))))]
      (when (or override
                (get-ui s [:is-mouse-down?]))
        (handler event)))))
@@ -156,7 +162,7 @@
                  (swap! app-state
                         (fn [prev]
                           (assoc-ui prev [:is-mouse-down?] false))))
-               :onmousemove (partial pen-event-handler app-state)}
+               :onmousemove (fn [e] (pen-event-handler app-state e))}
               ])
         pen-config (create-pen-config app-state)]
     (dom/append app-element svg)
@@ -172,10 +178,16 @@
                      (when-let [{:keys [fn args]} (keyboard-mappings (.-keyCode e))]
                        (apply fn args))))))
 
+(defn pen-move-handler
+  [app-state msg]
+  (draw-circle-to-canvas app-state (:data msg)))
+
 (defn ui-chan-handler
   "Handle messages to the ui"
-  [app-state data]
-  (.log js/console (str "ui-chan:" data)))
+  [app-state msg]
+  (cond
+    (= (:type msg) :pen-move) (pen-move-handler app-state msg)
+    :else (.log js/console (str "unknown ui-chan message received:\n" msg))))
 
 (defn listen-to-ui-chan
   "Listen for messages coming from the to ui channel"

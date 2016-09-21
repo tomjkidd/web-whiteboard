@@ -106,7 +106,6 @@
       (loop []
         (let [data (<! ch)]
           (do
-            (.log js/console (str "Message: " data))
             (websocket-handler app-state data)
             (recur)))))))
 

@@ -57,35 +57,34 @@
 (defn- init-app-state
   "The app-state, without [:server :ws] available"
   [ws-url]
-  (atom {:server {:ws nil
-                  :queue []
-                  :url ws-url}
-         
-         :client {:id (get query-params :cid (str "client:" (random-uuid)))
-                  :ui {:is-mouse-down? false
-                       :canvas {:id "canvas"}
-                       :pen {:color "#0000FF"
-                             :radius 3
-                             :example-id "pen-example"}}}
-         
-         :whiteboard {:id (get query-params :wid (str "whiteboard:" (random-uuid)))}
-         
-         :log-index nil
-         :mode :realtime
-         :transit {:writer (transit/writer :json)
-                   :reader (transit/reader :json)}
-         :channels {:ws {:from (chan)}
-                    :ui {:to (chan)}}
-         :connected false}))
-
-(defn- configure-chans
-  "Configure the application channels"
-  [app-state]
-  (let [s @app-state
-        ws-chan (get-in s [:channels :ws :from])
-        ui-chan (get-in s [:channels :ui :to])
-        ws-mult (mult ws-chan)]
-    (tap ws-mult ui-chan)))
+  (let [ws-server (chan)
+        hws-chan (chan)
+        ui-chan (chan)
+        ws-mult (mult ws-server)]
+    (tap ws-mult hws-chan)
+    (tap ws-mult ui-chan)
+    
+    (atom {:server {:ws nil
+                    :queue []
+                    :url ws-url}
+           
+           :client {:id (get query-params :cid (str "client:" (random-uuid)))
+                    :ui {:is-mouse-down? false
+                         :canvas {:id "canvas"}
+                         :pen {:color "#0000FF"
+                               :radius 3
+                               :example-id "pen-example"}}}
+           
+           :whiteboard {:id (get query-params :wid (str "whiteboard:" (random-uuid)))}
+           
+           :log-index nil
+           :mode :realtime
+           :transit {:writer (transit/writer :json)
+                     :reader (transit/reader :json)}
+           :channels {:ws ws-server
+                      :hws hws-chan
+                      :ui {:to ui-chan}}
+           :connected false})))
 
 (defn create-app-state
   "Create the app-state
@@ -97,5 +96,4 @@
         websocket (hws/create-ws app-state (fn [_] nil))]
     (swap! app-state (fn [prev]
                        (assoc-in prev [:server :ws] websocket)))
-    (configure-chans app-state)
     app-state))
