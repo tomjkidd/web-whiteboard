@@ -1,7 +1,7 @@
 (ns user
   (:require [com.stuartsierra.component :as component]
             [clojure.tools.namespace.repl :refer (refresh)]
-            [web-whiteboard.prototyping.websockets.simple-server :as ss]))
+            [web-whiteboard.server.core :as ss]))
 ;; TODO: Integrate all of the system stuff...
 ;; (def system nil)
 

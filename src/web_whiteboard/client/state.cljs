@@ -2,6 +2,7 @@
   "The state model needed for the client"
   (:require [cognitect.transit :as transit]
             [web-whiteboard.client.handlers.websocket :as hws]
+            [web-whiteboard.client.draw.circle :as c]
             [cljs.core.async :refer [chan mult tap]]
             [clojure.string]))
 
@@ -60,7 +61,20 @@
   (let [ws-server (chan)
         hws-chan (chan)
         ui-chan (chan)
-        ws-mult (mult ws-server)]
+        ws-mult (mult ws-server)
+        maybe-mode (get query-params :mode)
+        mode (if (nil? maybe-mode)
+               :circle
+               (keyword maybe-mode))
+        event-handler (case mode
+                        :circle c/event-handler
+                        c/event-handler)
+        draw-handler (case mode
+                       :circle c/draw-handler
+                       c/draw-handler)
+        draw-state (case mode
+                     :circle nil
+                     nil)]
     (tap ws-mult hws-chan)
     (tap ws-mult ui-chan)
     
@@ -73,7 +87,12 @@
                          :canvas {:id "canvas"}
                          :pen {:color "#0000FF"
                                :radius 3
-                               :example-id "pen-example"}}}
+                               :example-id "pen-example"
+                               }
+                         :drawing-algorithm {:mode mode
+                                             :event-handler event-handler
+                                             :draw-handler draw-handler
+                                             :state draw-state}}}
            
            :whiteboard {:id (get query-params :wid (str "whiteboard:" (random-uuid)))}
            

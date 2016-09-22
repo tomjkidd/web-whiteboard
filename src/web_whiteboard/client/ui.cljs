@@ -8,10 +8,6 @@
             [web-whiteboard.client.handlers.websocket :as hws])
   (:import [goog.events EventType KeyHandler KeyCodes]))
 
-(def margin
-  "TODO: Get this from the dom"
-  8)
-
 (def keyboard-mappings
   {KeyCodes.C {:doc "Clear the canvas"
                :key "C"
@@ -31,63 +27,31 @@
   [state keys new-val]
   (assoc-in state (concat [:client :ui] keys) new-val))
 
-(defn create-dot
-  "Create a circle svg element"
-  [app-state {:keys [id cx cy r fill]}]
-  (dom/create-element [:circle
-                       {:id id
-                        :cx (- cx margin)
-                        :cy (- cy margin)
-                        :r r
-                        :fill fill}
-                       []]))
-
-(defn event->circle-data
-  "Turn an event with clienX, clientY into circle data"
+(defn event->point-data
+  "Turn an event with clientX, clientY into point data"
   [app-state event]
-  (let [cx (.-clientX event)
-        cy (.-clientY event)
-        s @app-state
-        r (get-ui s [:pen :radius])
-        fill (get-ui s [:pen :color])]
-    {:shape :circle
-     :id (random-uuid)
-     :cx cx
-     :cy cy
-     :r r
-     :fill fill}))
-
-(defn draw-circle-to-canvas
-  [app-state circle-data]
   (let [s @app-state
-        canvas-id (get-ui s [:canvas :id])]
-    (dom/append (dom/by-id canvas-id)
-                (create-dot app-state circle-data))))
+        r (get-ui s [:pen :radius])
+        c (get-ui s [:pen :color])]
+    {:shape :point
+     :id (random-uuid)
+     :x (.-clientX event)
+     :y (.-clientY event)
+     :radius r
+     :color c}))
 
 (defn pen-event-handler
   "Handle pen event, possibly updating the dom"
   ([app-state event]
    (pen-event-handler app-state event false))
   ([app-state event override]
+   (.log js/console (str "pen-event-handler:" event (.-type event) override))
    (let [s @app-state
          canvas-id (get-ui s [:canvas :id])
-                                        ;TODO: This could be given many strategies based on the mode...
-         handler (fn [e]
-                   (let [s @app-state
-                         cid (get-in s [:client :id])
-                         wid (get-in s [:whiteboard :id])
-                         circle-data (event->circle-data app-state event)
-                         action {:type :pen-move
-                                 :client-id cid
-                                 :whiteboard-id wid
-                                 :data circle-data}
-                         ui-chan (get-in s [:channels :ui :to])]
-                     (hws/send app-state action)
-                     (go
-                       (>! ui-chan action))))]
+         event-handler (get-ui s [:drawing-algorithm :event-handler])]
      (when (or override
                (get-ui s [:is-mouse-down?]))
-       (handler event)))))
+       (event-handler app-state event)))))
 
 (defn change-pen-config
   "Update's the app-state when the pen config changes
@@ -161,7 +125,8 @@
                (fn [e]
                  (swap! app-state
                         (fn [prev]
-                          (assoc-ui prev [:is-mouse-down?] false))))
+                          (assoc-ui prev [:is-mouse-down?] false))
+                        (pen-event-handler app-state e false)))
                :onmousemove (fn [e] (pen-event-handler app-state e))}
               ])
         pen-config (create-pen-config app-state)]
@@ -178,16 +143,13 @@
                      (when-let [{:keys [fn args]} (keyboard-mappings (.-keyCode e))]
                        (apply fn args))))))
 
-(defn pen-move-handler
-  [app-state msg]
-  (draw-circle-to-canvas app-state (:data msg)))
-
 (defn ui-chan-handler
   "Handle messages to the ui"
-  [app-state msg]
-  (cond
-    (= (:type msg) :pen-move) (pen-move-handler app-state msg)
-    :else (.log js/console (str "unknown ui-chan message received:\n" msg))))
+  [app-state ui-action]
+  (let [s @app-state
+        draw-handler (get-in s [:client :ui :drawing-algorithm :draw-handler])
+        draw-state (get-in s [:client :ui :drawing-algorithm :state])]
+    (draw-handler app-state draw-state ui-action)))
 
 (defn listen-to-ui-chan
   "Listen for messages coming from the to ui channel"
@@ -196,9 +158,9 @@
     (let [s @app-state
           ch (get-in s [:channels :ui :to])]
       (loop []
-        (let [data (<! ch)]
+        (let [ui-action (<! ch)]
           (do
-            (ui-chan-handler app-state data)
+            (ui-chan-handler app-state ui-action)
             (recur)))))))
 
 (defn create-ui

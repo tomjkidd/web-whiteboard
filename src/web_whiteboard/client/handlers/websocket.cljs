@@ -53,7 +53,9 @@
         ws (get-in s [:server :ws])
         tw (get-in s [:transit :writer])]
     (if (not= (.-OPEN js/WebSocket) (.-readyState ws))
-      (reconnect-ws app-state (fn [w] (send app-state msg)))
+      (reconnect-ws app-state (fn [w]
+                                (register-client app-state)
+                                (send app-state msg)))
       (.send ws (transit/write tw msg)))))
 
 (defn recv

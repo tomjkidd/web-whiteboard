@@ -9,7 +9,8 @@
 
 (def conf
   "Get the values to use to configure the web server"
-  (config/load "resources/config.edn"))
+  (config/load "resources/config.edn"
+               "resources/dev.edn"))
 
 (defn create-app-state
   "Create an atom for the state that the web server needs to maintain"

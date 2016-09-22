@@ -15,14 +15,15 @@
         client (get-in s
                        [:clients client-id]
                        {:client-id client-id
-                        :ws ws})
+                        :ws nil})
         whiteboard (get-in s
                            [:whiteboards whiteboard-id]
                            {:whiteboard-id whiteboard-id
                             :clients {}})
+        updated-client (assoc-in client [:ws] ws)
         updated-whiteboard (assoc-in whiteboard [:clients client-id] client-id)]
     (swap! app-state (fn [prev]
-                       (-> (assoc-in s [:clients client-id] client)
+                       (-> (assoc-in s [:clients client-id] updated-client)
                            (assoc-in [:whiteboards whiteboard-id] updated-whiteboard))))))
 
 (defn pen-move-handler
@@ -39,7 +40,9 @@
       (let [client-ids (-> (get-in s [:whiteboards whiteboard-id :clients])
                            (keys))
             filtered (filter #(not= client-id %) client-ids)
-            wss (map #(get-in s [:clients % :ws]) filtered)
+            wss (->> filtered
+                     (map #(get-in s [:clients % :ws]))
+                     (filter #(.isConnected %)))
             out (when (not= 0 (count wss))
                   (ByteArrayOutputStream. 4096))
             tw (when (not (nil? out))
@@ -51,7 +54,7 @@
         ;; If the ws is not connected, create a queue...
         (doall (map #(try
                        (jetty/send! % raw-msg)
-                       (catch Exception e (log/warn "TODO: Handle pen-move-handler exception:" (.getMessage e)))) wss))))))
+                       (catch Exception e (log/warn "TODO: Handle pen-move-handler exception:" (.toString e)))) wss))))))
 
 (defn unknown-handler
   "Do something with a message with an unknown type"
@@ -61,6 +64,8 @@
 (def dispatch-map
   {:register register-handler
    :pen-move pen-move-handler
+   :pen-down pen-move-handler
+   :pen-up pen-move-handler
    :default unknown-handler})
 
 (defn- create-dispatch-handler
