@@ -14,7 +14,7 @@
         s @app-state
         r (get-in s [:client :ui :pen :radius])
         fill (get-in s [:client :ui :pen :color])]
-    {:shape :circle
+    {:mode :circle
      :id (random-uuid)
      :cx cx
      :cy cy

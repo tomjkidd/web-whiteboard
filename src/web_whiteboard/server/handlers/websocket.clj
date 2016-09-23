@@ -47,13 +47,13 @@
                   (ByteArrayOutputStream. 4096))
             tw (when (not (nil? out))
                  (transit/writer out :json))
-            raw-msg (when (not (nil? tw))
-                      (transit/write tw msg)
-                      (.toString out))]
+            transit-msg (when (not (nil? tw))
+                  (transit/write tw msg)
+                  (.toString out))]
         ;; TODO: Test that the websocket is still connected before sending the message!
         ;; If the ws is not connected, create a queue...
         (doall (map #(try
-                       (jetty/send! % raw-msg)
+                       (jetty/send! % transit-msg)
                        (catch Exception e (log/warn "TODO: Handle pen-move-handler exception:" (.toString e)))) wss))))))
 
 (defn unknown-handler
@@ -76,6 +76,15 @@
           handler (get dispatch-map t unknown-handler)]
       (handler app-state ws msg))))
 
+(defn transit-decode
+  "Decode a transit :json message"
+  [transit-msg]
+  (let [source (-> (.getBytes transit-msg StandardCharsets/UTF_8)
+                   (ByteArrayInputStream.))
+        r (transit/reader source :json)
+        msg (transit/read r)]
+    msg))
+
 ;; NOTE: on-connect and on-close should let the server know which clients are actively connected
 ;; TODO: Cleanup :ws references on-close
 (defn create-ws-handler
@@ -83,21 +92,17 @@
   (let [dispatch-handler (create-dispatch-handler app-state)]
     {:on-connect (fn [ws]
                    (log/debug ":ws:on-connect: " (str ws)))
-     :on-text (fn [ws text]
-
-                (let [source (-> (.getBytes text StandardCharsets/UTF_8)
-                                 (ByteArrayInputStream.))
-                      r (transit/reader source :json)
-                      data (transit/read r)]
-                  (log/debug ":ws:on-text: " data)
-                  (dispatch-handler ws data)
+     :on-text (fn [ws transit-msg]
+                (let [msg (transit-decode transit-msg)]
+                  (log/debug ":ws:on-text: " msg)
+                  (dispatch-handler ws msg)
 
                   ;; TODO: Can this be removed now?
-                  (jetty/send! ws text)))
+                  (jetty/send! ws transit-msg)))
      :on-close (fn [ws status-code reason]
                  (log/debug ":ws:on-close: " (str {:status-code status-code
                                                    :reason reason})))
      :on-error (fn [ws e]
-                 )
+                 (log/error ":ws:on-error: " (str e)))
      :on-bytes (fn [ws bytes offset len]
                  )}))

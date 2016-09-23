@@ -45,7 +45,6 @@
   ([app-state event]
    (pen-event-handler app-state event false))
   ([app-state event override]
-   (.log js/console (str "pen-event-handler:" event (.-type event) override))
    (let [s @app-state
          canvas-id (get-ui s [:canvas :id])
          event-handler (get-ui s [:drawing-algorithm :event-handler])]
@@ -104,6 +103,8 @@
       {:id "pen-options"}
       [color-picker size-picker pen-example]])))
 
+;TODO: onmouseout should generate a pen-up event. This will prevent leaving the
+;svg area from hanging functionality up in weird ways
 (defn create-drawing-ui
   "Create the drawing user interface"
   [app-state]

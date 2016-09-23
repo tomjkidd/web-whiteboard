@@ -3,6 +3,7 @@
   (:require [cognitect.transit :as transit]
             [web-whiteboard.client.handlers.websocket :as hws]
             [web-whiteboard.client.draw.circle :as c]
+            [web-whiteboard.client.draw.line :as l]
             [cljs.core.async :refer [chan mult tap]]
             [clojure.string]))
 
@@ -68,12 +69,15 @@
                (keyword maybe-mode))
         event-handler (case mode
                         :circle c/event-handler
+                        :line l/event-handler
                         c/event-handler)
         draw-handler (case mode
                        :circle c/draw-handler
+                       :line l/draw-handler
                        c/draw-handler)
         draw-state (case mode
                      :circle nil
+                     :line (l/init-draw-state)
                      nil)]
     (tap ws-mult hws-chan)
     (tap ws-mult ui-chan)
