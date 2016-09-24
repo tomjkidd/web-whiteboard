@@ -5,7 +5,8 @@
             [goog.events :as events]
             [cljs.core.async :as async
              :refer [>! <! put! chan alts!]]
-            [web-whiteboard.client.handlers.websocket :as hws])
+            [web-whiteboard.client.handlers.websocket :as hws]
+            [web-whiteboard.client.draw.core :refer [event-handler draw-handler]])
   (:import [goog.events EventType KeyHandler KeyCodes]))
 
 (def keyboard-mappings
@@ -47,10 +48,10 @@
   ([app-state event override]
    (let [s @app-state
          canvas-id (get-ui s [:canvas :id])
-         event-handler (get-ui s [:drawing-algorithm :event-handler])]
+         mode-record (get-ui s [:drawing-algorithm :mode])]
      (when (or override
                (get-ui s [:is-mouse-down?]))
-       (event-handler app-state event)))))
+       (event-handler mode-record app-state event)))))
 
 (defn change-pen-config
   "Update's the app-state when the pen config changes
@@ -148,9 +149,9 @@
   "Handle messages to the ui"
   [app-state ui-action]
   (let [s @app-state
-        draw-handler (get-in s [:client :ui :drawing-algorithm :draw-handler])
+        mode-record (get-in s [:client :ui :drawing-algorithm :mode])
         draw-state (get-in s [:client :ui :drawing-algorithm :state])]
-    (draw-handler app-state draw-state ui-action)))
+    (draw-handler mode-record app-state draw-state ui-action)))
 
 (defn listen-to-ui-chan
   "Listen for messages coming from the to ui channel"
