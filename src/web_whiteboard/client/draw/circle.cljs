@@ -42,3 +42,12 @@
         canvas-id (get-in s [:client :ui :canvas :id])]
     (dom/append (dom/by-id canvas-id)
                 (create-circle app-state (:data ui-action)))))
+
+(defrecord CircleMode []
+  core/DrawingMode
+  (init-draw-state [this]
+    nil)
+  (event-handler [this app-state event]
+    (event-handler app-state event))
+  (draw-handler [this app-state draw-state ui-action]
+    (draw-handler app-state draw-state ui-action)))

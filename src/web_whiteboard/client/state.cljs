@@ -67,6 +67,9 @@
         mode (if (nil? maybe-mode)
                :circle
                (keyword maybe-mode))
+        mode-record (case mode
+                      :circle (c/->CircleMode)
+                      :line (l/->LineMode))
         event-handler (case mode
                         :circle c/event-handler
                         :line l/event-handler

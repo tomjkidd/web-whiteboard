@@ -110,3 +110,12 @@
       :pen-down (on-pen-down app-state draw-state ui-action)
       :pen-move (on-pen-move app-state draw-state ui-action)
       :pen-up (.log js/console "TODO: ignore, that is your queue to stop drawing"))))
+
+(defrecord LineMode []
+  core/DrawingMode
+  (init-draw-state [this]
+    (init-draw-state))
+  (event-handler [this app-state event]
+    (event-handler app-state event))
+  (draw-handler [this app-state draw-state ui-action]
+    (draw-handler app-state draw-state ui-action)))

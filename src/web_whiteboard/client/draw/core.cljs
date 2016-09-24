@@ -36,3 +36,12 @@
         mode (get-in s [:client :ui :drawing-algorithm :mode])
         draw-state (get-in s [:client :ui :drawing-algorithm :state])]
     (draw-handler app-state draw-state action)))
+
+(defprotocol DrawingMode
+  "The set of operations needed to support new drawing modes."
+  (init-draw-state [this]
+    "Initializes state the the drawing mode depends on")
+  (event-handler [this app-state event]
+    "Handles turning ui events into ui-actions")
+  (draw-handler [this app-state draw-state ui-action]
+    "Updates the dom, if necessary, in response to ui-actions"))
