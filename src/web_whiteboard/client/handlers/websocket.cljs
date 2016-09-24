@@ -9,6 +9,7 @@
 (declare close-handler)
 (declare message-handler)
 (declare ws-msg->chan)
+(declare register-client)
 
 (defn create-ws
   "Create a client-side websocket"

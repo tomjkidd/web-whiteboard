@@ -93,12 +93,12 @@
         {:keys [id cx cy r fill]} data
         path-id (get-in d [:clients client-id :path-id])
         path-element (dom/by-id path-id)
-        d-attr (.getAttribute path-element "d")
+        d-attr (dom/get-attr path-element :d)
         new-d-attr (str d-attr " L " (- cx margin) " " (- cy margin))]
     (swap! draw-state (fn [prev]
                         (assoc-in prev [:clients client-id] {:path-id path-id
                                                              :prev ui-action})))
-    (.setAttribute path-element "d" new-d-attr)))
+    (dom/set-attr path-element :d new-d-attr)))
 
 (defn draw-handler
   [app-state draw-state {:keys [type] :as ui-action}]
