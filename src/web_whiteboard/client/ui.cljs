@@ -13,6 +13,7 @@
   {KeyCodes.C {:doc "Clear the canvas"
                :key "C"
                :fn (fn [args]
+                     ;; TODO: Add a ui-action to send to clear canvas
                      (dom/remove-children (dom/by-id "canvas")))
                :args []}})
 
