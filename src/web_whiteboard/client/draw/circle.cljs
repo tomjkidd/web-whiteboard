@@ -2,15 +2,11 @@
   (:require [carafe.dom :as dom]
             [web-whiteboard.client.draw.core :as core]))
 
-(def margin
-  "TODO: Get this from the dom"
-  8)
-
 (defn event->data
   "Turn an event with clientX, clientY into circle data"
   [app-state event]
-  (let [cx (.-clientX event)
-        cy (.-clientY event)
+  (let [cx (.-offsetX event)
+        cy (.-offsetY event)
         s @app-state
         r (get-in s [:client :ui :pen :radius])
         fill (get-in s [:client :ui :pen :color])]
@@ -30,8 +26,8 @@
   [app-state {:keys [id cx cy r fill]}]
   (dom/create-element [:circle
                        {:id id
-                        :cx (- cx margin)
-                        :cy (- cy margin)
+                        :cx cx
+                        :cy cy
                         :r r
                         :fill fill}
                        []]))

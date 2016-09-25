@@ -3,10 +3,6 @@
   (:require [carafe.dom :as dom]
             [web-whiteboard.client.draw.core :as core]))
 
-(def margin
-  "TODO: Get this from the dom"
-  8)
-
 (defn init-draw-state
   "Creates state that is needed to keep track of which events
   belong to which client.
@@ -23,8 +19,8 @@
   [app-state {:keys [id cx cy r fill]}]
   (dom/create-element [:circle
                        {:id id
-                        :cx (- cx margin)
-                        :cy (- cy margin)
+                        :cx cx
+                        :cy cy
                         :r r
                         :fill fill}
                        []]))
@@ -34,7 +30,7 @@
   [app-state draw-state {:keys [id cx cy r fill] :as pen-data}]
   (dom/create-element [:path
                          {:id id
-                          :d (str "M " (- cx margin) " " (- cy margin) )
+                          :d (str "M " cx " " cy )
                           :fill "transparent"
                           :stroke fill
                           :stroke-width (* 2 r) ; d = 2 r
@@ -47,8 +43,8 @@
 (defn event->data
   "Turn an event with clientX, clientY into path data"
   [app-state event]
-  (let [x (.-clientX event)
-        y (.-clientY event)
+  (let [x (.-offsetX event)
+        y (.-offsetY event)
         s @app-state
         r (get-in s [:client :ui :pen :radius])
         c (get-in s [:client :ui :pen :color])]
@@ -94,7 +90,7 @@
         path-id (get-in d [:clients client-id :path-id])
         path-element (dom/by-id path-id)
         d-attr (dom/get-attr path-element :d)
-        new-d-attr (str d-attr " L " (- cx margin) " " (- cy margin))]
+        new-d-attr (str d-attr " L " cx " " cy)]
     (swap! draw-state (fn [prev]
                         (assoc-in prev [:clients client-id] {:path-id path-id
                                                              :prev ui-action})))
