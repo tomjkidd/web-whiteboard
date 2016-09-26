@@ -26,15 +26,15 @@
                        (-> (assoc-in s [:clients client-id] updated-client)
                            (assoc-in [:whiteboards whiteboard-id] updated-whiteboard))))))
 
-(defn pen-move-handler
-  "Handle a :pen-move message to publish it to other clients"
+(defn msg-handler
+  "Handle message by publishing it to the other connected clients"
   [app-state ws {:keys [client-id whiteboard-id data] :as msg}]
   (let [s @app-state
         client (get-in s [:clients client-id])
         whiteboard (get-in s [:whiteboards whiteboard-id])
         valid? (not (or (nil? client) (nil? whiteboard)))]
     (when (not valid?)
-      (log/warn "Invalid message received by pen-move-handler, ignoring..."))
+      (log/warn "Invalid message received by msg-handler, ignoring..."))
 
     (when valid?
       (let [client-ids (-> (get-in s [:whiteboards whiteboard-id :clients])
@@ -50,11 +50,9 @@
             transit-msg (when (not (nil? tw))
                   (transit/write tw msg)
                   (.toString out))]
-        ;; TODO: Test that the websocket is still connected before sending the message!
-        ;; If the ws is not connected, create a queue...
         (doall (map #(try
                        (jetty/send! % transit-msg)
-                       (catch Exception e (log/warn "TODO: Handle pen-move-handler exception:" (.toString e)))) wss))))))
+                       (catch Exception e (log/warn "TODO: Handle msg-handler exception:" (.toString e)))) wss))))))
 
 (defn unknown-handler
   "Do something with a message with an unknown type"
@@ -63,9 +61,10 @@
 
 (def dispatch-map
   {:register register-handler
-   :pen-move pen-move-handler
-   :pen-down pen-move-handler
-   :pen-up pen-move-handler
+   :pen-move msg-handler
+   :pen-down msg-handler
+   :pen-up msg-handler
+   :clear-canvas msg-handler
    :default unknown-handler})
 
 (defn- create-dispatch-handler

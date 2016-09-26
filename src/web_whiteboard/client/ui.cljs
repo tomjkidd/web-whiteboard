@@ -9,12 +9,26 @@
             [web-whiteboard.client.draw.core :refer [event-handler draw-handler]])
   (:import [goog.events EventType KeyHandler KeyCodes]))
 
+(defn ui-action->chan
+  [app-state ui-action]
+  (let [s @app-state
+        ui-chan (get-in s [:channels :ui :to])]
+    (go
+      (>! ui-chan ui-action))))
+
 (def keyboard-mappings
   {KeyCodes.C {:doc "Clear the canvas"
                :key "C"
-               :fn (fn [args]
-                     ;; TODO: Add a ui-action to send to clear canvas
-                     (dom/remove-children (dom/by-id "canvas")))
+               :fn (fn [app-state]
+                     (let [s @app-state
+                           cid (get-in s [:client :id])
+                           wid (get-in s [:whiteboard :id])
+                           action {:type :clear-canvas
+                                   :client-id cid
+                                   :whiteboard-id wid
+                                   :data nil}]
+                       (hws/send app-state action)
+                       (ui-action->chan app-state action)))
                :args []}})
 
 (defn- get-ui
@@ -138,21 +152,27 @@
 
 (defn listen-to-keybindings
   "Register to listen for keybinding events"
-  []
+  [app-state]
   (let [kh (KeyHandler. js/document)]
     (events/listen kh
                    KeyHandler.EventType.KEY
                    (fn [e]
                      (when-let [{:keys [fn args]} (keyboard-mappings (.-keyCode e))]
-                       (apply fn args))))))
+                       (apply fn (concat [app-state] args)))))))
 
 (defn ui-chan-handler
   "Handle messages to the ui"
   [app-state ui-action]
   (let [s @app-state
+        action-type (:type ui-action)
         mode-record (get-in s [:client :ui :drawing-algorithm :mode])
         draw-state (get-in s [:client :ui :drawing-algorithm :state])]
-    (draw-handler mode-record app-state draw-state ui-action)))
+    (cond
+      (contains? #{:pen-move :pen-down :pen-up} action-type)
+      (draw-handler mode-record app-state draw-state ui-action)
+      
+      (= :clear-canvas action-type)
+      (dom/remove-children (dom/by-id "canvas")))))
 
 (defn listen-to-ui-chan
   "Listen for messages coming from the to ui channel"
@@ -169,5 +189,5 @@
 (defn create-ui
   [app-state]
   (create-drawing-ui app-state)
-  (listen-to-keybindings)
+  (listen-to-keybindings app-state)
   (listen-to-ui-chan app-state))
