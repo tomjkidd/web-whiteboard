@@ -5,6 +5,7 @@
             [web-whiteboard.client.draw.core :refer [init-draw-state]]
             [web-whiteboard.client.draw.circle :as c]
             [web-whiteboard.client.draw.line :as l]
+            [web-whiteboard.client.draw.smooth-line :as sl]
             [cljs.core.async :refer [chan mult tap]]
             [clojure.string]))
 
@@ -71,6 +72,7 @@
         mode-record (case mode
                       :circle (c/->CircleMode)
                       :line (l/->LineMode)
+                      :smooth-line (sl/->SmoothLineMode)
                       (c/->CircleMode))
         ]
     (tap ws-mult hws-chan)
