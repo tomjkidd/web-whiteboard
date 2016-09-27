@@ -67,13 +67,13 @@
         ws-mult (mult ws-server)
         maybe-mode (get query-params :mode)
         mode (if (nil? maybe-mode)
-               :circle
+               :smooth-line
                (keyword maybe-mode))
         mode-record (case mode
                       :circle (c/->CircleMode)
                       :line (l/->LineMode)
                       :smooth-line (sl/->SmoothLineMode)
-                      (c/->CircleMode))
+                      (sl/->SmoothLineMode))
         ]
     (tap ws-mult hws-chan)
     (tap ws-mult ui-chan)

@@ -130,8 +130,9 @@
         svg (dom/create-element
              [:svg
               {:id canvas-id
-               :width 500
+               :width 1000
                :height 500
+               :style "display: block; margin: 0 auto; background-color: white;"
                :onmousedown
                (fn [e]
                  (swap! app-state
@@ -147,6 +148,8 @@
                :onmousemove (fn [e] (pen-event-handler app-state e))}
               ])
         pen-config (create-pen-config app-state)]
+
+    (dom/set-attr app-element :style "padding-top: 20px;")
     (dom/append app-element svg)
     (dom/append app-element pen-config)))
 
