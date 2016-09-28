@@ -6,7 +6,8 @@
             [cljs.core.async :as async
              :refer [>! <! put! chan alts!]]
             [web-whiteboard.client.handlers.websocket :as hws]
-            [web-whiteboard.client.draw.core :refer [event-handler draw-handler]])
+            [web-whiteboard.client.draw.core :refer [event-handler draw-handler]]
+            [web-whiteboard.client.file-export :as fe])
   (:import [goog.events EventType KeyHandler KeyCodes]))
 
 (defn ui-action->chan
@@ -29,7 +30,16 @@
                                    :data nil}]
                        (hws/send app-state action)
                        (ui-action->chan app-state action)))
-               :args []}})
+               :args []}
+   KeyCodes.S {:doc "Save the canvas as SVG"
+               :key "S"
+               :fn (fn [app-state]
+                     ;TODO: Should save come in through the ui-action channel?
+                     ;For now I didn't think it is necessary.
+                     (let [s @app-state
+                           canvas-id (get-in s [:client :ui :canvas :id])
+                           svg-element (dom/by-id canvas-id)]
+                       (fe/save-as-svg svg-element "web-whiteboard.svg")))}})
 
 (defn- get-ui
   "Convenience for reading ui state
