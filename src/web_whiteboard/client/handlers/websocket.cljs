@@ -18,32 +18,27 @@
          ws-url (get-in s [:server :url])]
      (ws/create-websocket
       ws-url
-      {:onopen (fn [event]
-                 (let [s @app-state
-                       ws (get-in s [:server :ws])
-                       tw (get-in s [:transit :writer])]
-                   (.log js/console (str "Open: " event))
-                   (open-handler app-state event)
-                   (when init-fn
-                     (init-fn ws))))
-       :onerror (fn [err]
+      {:onopen (fn [ws event]
+                 (.log js/console (str "Open: " event))
+                 (open-handler app-state ws event)
+                 (when init-fn
+                   (init-fn ws)))
+       :onerror (fn [ws err]
                   ;; TODO: Queue events on error so that they can be
                   ;; made available once reconnected...
                   (.log js/console (str "Error: " err)))
-       :onclose (fn [event]
+       :onclose (fn [ws event]
                   (.log js/console (str "Close: " event))
                   (close-handler app-state nil))
-       :onmessage (fn [event]
+       :onmessage (fn [ws event]
                     (message-handler app-state event))}))))
 
 (defn- reconnect-ws
   "Create a new websocket to communicate through"
   [app-state init-fn]
   (let [s @app-state
-        ws-url (get-in s [:server :url])
-        new-ws (create-ws app-state init-fn)]
-    (swap! app-state (fn [prev]
-                       (assoc-in prev [:server :ws] new-ws)))))
+        ws-url (get-in s [:server :url])]
+    (create-ws app-state init-fn)))
 
 (defn send
   "Send a message to a websocket server as transit data
@@ -78,8 +73,16 @@
 
 (defn open-handler
   "A handler for :onopen event of WebSocket"
-  [app-state msg]
-  (swap! app-state (fn [prev] (assoc prev :connected true))))
+  [app-state ws msg]
+  (let [s @app-state]
+    (when-let [ws (get-in s [:server :ws])]
+      (.close ws)))
+
+  (swap! app-state (fn [prev]
+                     (-> (assoc-in prev [:server :ws] ws)
+                         (assoc  :connected true))))
+
+  (register-client app-state))
 
 (defn close-handler
   "A handler for :onclose event of WebSocket"

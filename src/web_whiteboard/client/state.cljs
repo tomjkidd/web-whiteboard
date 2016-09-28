@@ -111,6 +111,4 @@
   [ws-url]
   (let [app-state (init-app-state ws-url)
         websocket (hws/create-ws app-state (fn [_] nil))]
-    (swap! app-state (fn [prev]
-                       (assoc-in prev [:server :ws] websocket)))
     app-state))

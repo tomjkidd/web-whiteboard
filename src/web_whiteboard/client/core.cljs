@@ -10,5 +10,4 @@
   []
   (let [app-state (state/create-app-state state/ws-url)]
     (hws/listen-to-websocket-chan app-state)
-    (hws/register-client app-state)
     (ui/create-ui app-state)))
