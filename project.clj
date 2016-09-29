@@ -4,7 +4,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.9.229"]
                  [org.clojars.tomjkidd/carafe "0.1.0-SNAPSHOT"]
-                 [info.sunng/ring-jetty9-adapter "0.9.6-SNAPSHOT"]
+                 [info.sunng/ring-jetty9-adapter "0.9.5"]
                  [ring "1.5.0"]
                  [compojure "1.5.1"]
                  [ring/ring-defaults "0.2.1"
