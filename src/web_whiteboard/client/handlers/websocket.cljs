@@ -64,12 +64,14 @@
 ;TODO: register new clients that are also drawing on the whiteboard
 (defn register-handler
   [app-state msg]
-  (.log js/console (str "register-handler called" msg)))
+  ;(.log js/console (str "register-handler called" msg))
+  )
 
 ;TODO: handle drawing to the ui for connected clients
 (defn pen-move-handler
   [app-state msg]
-  (.log js/console (str "pen-move-handler" msg)))
+  ;(.log js/console (str "pen-move-handler" msg))
+  )
 
 (defn open-handler
   "A handler for :onopen event of WebSocket"

@@ -94,10 +94,7 @@
      :on-text (fn [ws transit-msg]
                 (let [msg (transit-decode transit-msg)]
                   (log/debug ":ws:on-text: " msg)
-                  (dispatch-handler ws msg)
-
-                  ;; TODO: Can this be removed now?
-                  (jetty/send! ws transit-msg)))
+                  (dispatch-handler ws msg)))
      :on-close (fn [ws status-code reason]
                  (log/debug ":ws:on-close: " (str {:status-code status-code
                                                    :reason reason})))
