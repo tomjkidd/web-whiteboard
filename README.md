@@ -10,6 +10,8 @@ clients to collaboratively draw together.
 It is not meant to be a drawing tool like Photoshop, but simply a drawing
 surface that allows you access to color and size with little else.
 
+![web-whiteboard demo gif](./demo.gif)
+
 The next pieces will be:
 
 1. Create a web server that can stream svg events via websockets -> DONE
