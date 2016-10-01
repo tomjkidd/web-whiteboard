@@ -2,12 +2,12 @@
   "Responsible for generating the user interface for the client application"
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [carafe.dom :as dom]
+            [carafe.file :as f]
             [goog.events :as events]
             [cljs.core.async :as async
              :refer [>! <! put! chan alts!]]
             [web-whiteboard.client.handlers.websocket :as hws]
-            [web-whiteboard.client.draw.core :refer [event-handler draw-handler]]
-            [web-whiteboard.client.file-export :as fe])
+            [web-whiteboard.client.draw.core :refer [event-handler draw-handler]])
   (:import [goog.events EventType KeyHandler KeyCodes]))
 
 (defn ui-action->chan
@@ -39,7 +39,7 @@
                      (let [s @app-state
                            canvas-id (get-in s [:client :ui :canvas :id])
                            svg-element (dom/by-id canvas-id)]
-                       (fe/save-as-svg svg-element "web-whiteboard.svg")))}})
+                       (f/save-as-svg svg-element "web-whiteboard.svg")))}})
 
 (defn- get-ui
   "Convenience for reading ui state
