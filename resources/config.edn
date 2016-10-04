@@ -1,4 +1,4 @@
 {:server {:port 5000
           :join? true
-          :ws-timeout-sec 60
+          :ws-timeout-sec 300
           :log-level :info}}

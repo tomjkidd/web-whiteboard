@@ -1,6 +1,6 @@
 (defproject web-whiteboard "0.1.0-SNAPSHOT"
-  :description "FIXME: write this!"
-  :url "http://example.com/FIXME"
+  :description "A clojure/clojurescript whiteboard for interactive drawing in the browser"
+  :url "https://github.com/tomjkidd/web-whiteboard.git"
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.9.229"]
                  [org.clojars.tomjkidd/carafe "0.1.0-SNAPSHOT"]
@@ -40,12 +40,9 @@
                  :optimizations :none
                  :source-map true}}]}
 
-  :ring {:handler web-whiteboard.handler/app}
   :main ^:skip-aot web-whiteboard.server.core
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring/ring-mock "0.3.0"]]
          :source-paths ["dev"]
-         :repl-options {:init-ns user}}
-   :websocket-example
-   {:main ^:skip-aot web-whiteboard.prototyping.websockets.simple-server}})
+         :repl-options {:init-ns user}}})

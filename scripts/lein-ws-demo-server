@@ -1,1 +1,0 @@
-lein with-profile default,websocket-example run

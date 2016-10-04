@@ -1,2 +1,2 @@
 {:server {:join? false
-          :ws-timeout-sec 5}}
+          :ws-timeout-sec 300}}
