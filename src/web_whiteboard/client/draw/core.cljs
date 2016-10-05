@@ -12,6 +12,7 @@
   (let [s @app-state
         cid (get-in s [:client :id])
         wid (get-in s [:whiteboard :id])
+        to-ws-server-chan (get-in s [:channels :ws-server :to])
         data (event->data app-state event)
         event-type (.-type event)
         event-keyword (keyword (str "on" event-type))
@@ -24,7 +25,8 @@
                 :whiteboard-id wid
                 :data data}
         ui-chan (get-in s [:channels :ui :to])]
-    (hws/send app-state action)
+    (go
+      (>! to-ws-server-chan action))
     (go
       (>! ui-chan action))))
 

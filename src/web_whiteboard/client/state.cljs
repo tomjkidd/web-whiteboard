@@ -61,10 +61,11 @@
 (defn- init-app-state
   "The app-state, without [:server :ws] available"
   [ws-url]
-  (let [ws-server (chan)
+  (let [from-ws-server (chan)
+        to-ws-server (chan)
         hws-chan (chan)
         ui-chan (chan)
-        ws-mult (mult ws-server)
+        ws-mult (mult from-ws-server)
         maybe-mode (get query-params :mode)
         mode (if (nil? maybe-mode)
                :smooth-line
@@ -98,7 +99,8 @@
            :mode :realtime
            :transit {:writer (transit/writer :json)
                      :reader (transit/reader :json)}
-           :channels {:ws ws-server
+           :channels {:ws-server {:from from-ws-server
+                                  :to to-ws-server}
                       :hws hws-chan
                       :ui {:to ui-chan}}
            :connected false})))

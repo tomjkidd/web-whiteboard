@@ -24,11 +24,13 @@
                      (let [s @app-state
                            cid (get-in s [:client :id])
                            wid (get-in s [:whiteboard :id])
+                           to-ws-server-chan (get-in s [:channels :ws-server :to])
                            action {:type :clear-canvas
                                    :client-id cid
                                    :whiteboard-id wid
                                    :data nil}]
-                       (hws/send app-state action)
+                       (go
+                         (>! to-ws-server-chan action))
                        (ui-action->chan app-state action)))
                :args []}
    KeyCodes.S {:doc "Save the canvas as SVG"

@@ -98,10 +98,10 @@
     (ws-msg->chan app-state msg)))
 
 (defn ws-msg->chan
-  "Put data onto the [:channels :ws] channel"
+  "Put data onto the [:channels :ws-server :from] channel"
   [app-state data]
   (let [s @app-state
-        ch (get-in s [:channels :ws])]
+        ch (get-in s [:channels :ws-server :from])]
     (put! ch data)))
 
 (defn websocket-chan-handler
@@ -112,7 +112,7 @@
     :pen-move (pen-move-handler app-state msg)
     :none))
 
-(defn listen-to-websocket-chan
+(defn listen-to-websocket-from-chan
   "Listen for messages coming from the websocket server"
   [app-state] 
   (go
@@ -122,6 +122,18 @@
         (let [data (<! ch)]
           (do
             (websocket-chan-handler app-state data)
+            (recur)))))))
+
+(defn listen-to-websocket-to-chan
+  "Listen for messages that the client wants to send to the websocket server"
+  [app-state]
+  (go
+    (let [s @app-state
+          ch (get-in s [:channels :ws-server :to])]
+      (loop []
+        (let [data (<! ch)]
+          (do
+            (send app-state data)
             (recur)))))))
 
 (defn register-client
