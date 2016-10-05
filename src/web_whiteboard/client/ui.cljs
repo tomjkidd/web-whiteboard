@@ -20,6 +20,7 @@
 (def keyboard-mappings
   {KeyCodes.C {:doc "Clear the canvas"
                :key "C"
+               :key-code KeyCodes.C
                :command-name "Clear"
                :fn (fn [app-state]
                      (let [s @app-state
@@ -36,6 +37,7 @@
                :args []}
    KeyCodes.S {:doc "Save the canvas as SVG"
                :key "S"
+               :key-code KeyCodes.S
                :command-name "Save"
                :fn (fn [app-state]
                      ;TODO: Should save come in through the ui-action channel?
@@ -162,7 +164,8 @@
                          padding-style
                          "font-size: 15px;"
                          "border: 2px #DDDDDD solid;"
-                         "border-radius: 5px;")
+                         "border-radius: 5px;"
+                         "cursor: pointer;")
 
         command-style (str less-light-text
                            font-accent
@@ -175,9 +178,14 @@
                        "font-size: 12px;"
                        "color: #999999;")
                         
-        create-menu-item (fn [{:keys [key command-name doc] :as menu-item}]
+        create-menu-item (fn [{:keys [key key-code command-name doc] :as menu-item}]
                            [:div {:class "kb-menu-item" :style item-style}
-                            [[:span {:class "kb-menu-key" :style badge-style} [[:text {} key]]]
+                            [[:span
+                              {:class "kb-menu-key" :style badge-style
+                               :onclick (fn [e]
+                                          (when-let [{:keys [fn args]} (keyboard-mappings key-code)]
+                                            (apply fn (concat [app-state] args))))}
+                              [[:text {} key]]]
                              [:span {:class "kb-menu-command-name" :style command-style} [[:text {} command-name]]]
                              [:span {:class "kb-menu-doc" :style doc-style} [[:text {} doc]]]]])
         header [:div {:id "kb-menu-header" :style header-style} [[:text {} "Keyboard Shortcuts"]]]
