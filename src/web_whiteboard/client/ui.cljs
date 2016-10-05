@@ -20,6 +20,7 @@
 (def keyboard-mappings
   {KeyCodes.C {:doc "Clear the canvas"
                :key "C"
+               :command-name "Clear"
                :fn (fn [app-state]
                      (let [s @app-state
                            cid (get-in s [:client :id])
@@ -35,6 +36,7 @@
                :args []}
    KeyCodes.S {:doc "Save the canvas as SVG"
                :key "S"
+               :command-name "Save"
                :fn (fn [app-state]
                      ;TODO: Should save come in through the ui-action channel?
                      ;For now I didn't think it is necessary.
@@ -131,6 +133,60 @@
       {:id "pen-options"}
       [color-picker size-picker pen-example]])))
 
+;; TODO: Is there a better way to manage the CSS stuff than this?
+(defn create-keyboard-shortcut-menu
+  "Create the user interface for the keyboard shortcut menu"
+  [app-state]
+  (let [light-text "color: #FAFFFA;"
+        less-light-text "color: #EFEFEF;"
+        font-common "font-family: 'Lato', sans-serif; font-weight: 300;"
+        font-accent "font-family: monospace; font-weight: 300;"
+        header-background "background-color: #353535;"
+        item-background "background-color: #444444;"
+        border-style "border-bottom: 1px #777777 solid;"
+        padding-style "padding: 3px;"
+
+        header-style (str "font-size: 20px;"
+                          light-text
+                          font-common
+                          padding-style
+                          header-background
+                          border-style)
+
+        item-style (str "padding: 8px;"
+                        item-background
+                        border-style)
+
+        badge-style (str light-text
+                         font-accent
+                         padding-style
+                         "font-size: 15px;"
+                         "border: 2px #DDDDDD solid;"
+                         "border-radius: 5px;")
+
+        command-style (str less-light-text
+                           font-accent
+                           padding-style
+                           "padding-left: 6px;"
+                           "font-size: 15px;")
+        
+        doc-style (str font-common
+                       padding-style
+                       "font-size: 12px;"
+                       "color: #999999;")
+                        
+        create-menu-item (fn [{:keys [key command-name doc] :as menu-item}]
+                           [:div {:class "kb-menu-item" :style item-style}
+                            [[:span {:class "kb-menu-key" :style badge-style} [[:text {} key]]]
+                             [:span {:class "kb-menu-command-name" :style command-style} [[:text {} command-name]]]
+                             [:span {:class "kb-menu-doc" :style doc-style} [[:text {} doc]]]]])
+        header [:div {:id "kb-menu-header" :style header-style} [[:text {} "Keyboard Shortcuts"]]]
+        menu-items (vec (map create-menu-item (vals keyboard-mappings)))]
+    (dom/create-element
+     [:div
+      {:id "keyboard-shortcut-menu"}
+      (cons header menu-items)])))
+
 ;TODO: onmouseout should generate a pen-up event. This will prevent leaving the
 ;svg area from hanging functionality up in weird ways
 (defn create-drawing-ui
@@ -159,11 +215,13 @@
                         (pen-event-handler app-state e false)))
                :onmousemove (fn [e] (pen-event-handler app-state e))}
               ])
-        pen-config (create-pen-config app-state)]
+        pen-config (create-pen-config app-state)
+        keyboard-shortcut-menu (create-keyboard-shortcut-menu app-state)]
 
     (dom/set-attr app-element :style "padding-top: 20px;")
     (dom/append app-element svg)
-    (dom/append app-element pen-config)))
+    (dom/append app-element pen-config)
+    (dom/append app-element keyboard-shortcut-menu)))
 
 (defn listen-to-keybindings
   "Register to listen for keybinding events"
