@@ -203,24 +203,21 @@
   (let [app-element (dom/by-id "app")
         s @app-state
         canvas-id (get-in s [:client :ui :canvas :id])
+        set-mousedown-to (fn [val]
+                           (fn [e]
+                             (swap! app-state
+                                    (fn [prev]
+                                      (assoc-ui prev [:is-mouse-down?] val))
+                                    (pen-event-handler app-state e val))))
         svg (dom/create-element
              [:svg
               {:id canvas-id
                :width 1000
                :height 500
                :style "display: block; margin: 0 auto; background-color: white;"
-               :onmousedown
-               (fn [e]
-                 (swap! app-state
-                        (fn [prev]
-                          (assoc-ui prev [:is-mouse-down?] true))
-                        (pen-event-handler app-state e true)))
-               :onmouseup
-               (fn [e]
-                 (swap! app-state
-                        (fn [prev]
-                          (assoc-ui prev [:is-mouse-down?] false))
-                        (pen-event-handler app-state e false)))
+               :onmousedown (set-mousedown-to true)
+               :onmouseup (set-mousedown-to false)
+               :onmouseleave (set-mousedown-to false)
                :onmousemove (fn [e] (pen-event-handler app-state e))}
               ])
         pen-config (create-pen-config app-state)

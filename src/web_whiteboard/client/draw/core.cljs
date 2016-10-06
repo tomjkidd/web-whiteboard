@@ -19,7 +19,8 @@
         action-type (case event-keyword
                       :onmousemove :pen-move
                       :onmousedown :pen-down
-                      :onmouseup :pen-up)
+                      :onmouseup :pen-up
+                      :onmouseleave :pen-up)
         action {:type action-type
                 :client-id cid
                 :whiteboard-id wid
