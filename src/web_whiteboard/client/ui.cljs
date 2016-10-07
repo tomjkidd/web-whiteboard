@@ -207,14 +207,14 @@
                            (fn [e]
                              (swap! app-state
                                     (fn [prev]
-                                      (assoc-ui prev [:is-mouse-down?] val))
-                                    (pen-event-handler app-state e val))))
+                                      (assoc-ui prev [:is-mouse-down?] val)))
+                             (pen-event-handler app-state e val)))
         svg (dom/create-element
              [:svg
               {:id canvas-id
                :width 1000
                :height 500
-               :style "display: block; margin: 0 auto; background-color: white;"
+               :style "display: block; margin: 0 auto; background-color: white; cursor: default;"
                :onmousedown (set-mousedown-to true)
                :onmouseup (set-mousedown-to false)
                :onmouseleave (set-mousedown-to false)

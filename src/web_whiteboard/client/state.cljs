@@ -27,7 +27,8 @@
   (get-query-params (-> js/window
                      .-location
                      .-search)))
-(.log js/console query-params)
+
+;(.log js/console query-params)
 
 (def hostname
   "The client-determined hostname"
