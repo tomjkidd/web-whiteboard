@@ -15,3 +15,4 @@ pom.xml
 /resources/public/js/webwhiteboard.js
 /repl/
 .lein-failures
+.cljs_rhino_repl
