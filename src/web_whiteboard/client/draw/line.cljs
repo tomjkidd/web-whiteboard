@@ -22,7 +22,9 @@
                         :cx cx
                         :cy cy
                         :r r
-                        :fill fill}
+                        :fill fill
+                        :style "pointer-events: none;"
+                        }
                        []]))
 
 (defn create-path
@@ -35,7 +37,9 @@
                           :stroke fill
                           :stroke-width (* 2 r) ; d = 2 r
                           :stroke-linejoin "round"
-                          :stroke-linecap "round"}
+                          :stroke-linecap "round"
+                          :style "pointer-events: none;"
+                          }
                          []]))
 
 ;; TODO: For now, just use cx,cy,r,fill. In the future, maybe
