@@ -43,6 +43,9 @@
   :main ^:skip-aot web-whiteboard.server.core
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
-                        [ring/ring-mock "0.3.0"]]
+                        [ring/ring-mock "0.3.0"]
+                        [com.cemerick/piggieback "0.2.1"]
+                        [org.clojure/tools.nrepl "0.2.10"]]
          :source-paths ["dev"]
-         :repl-options {:init-ns user}}})
+         :repl-options {:init-ns user
+                        :nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}}})
