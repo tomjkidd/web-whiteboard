@@ -87,7 +87,7 @@
            :client {:id (get query-params :cid (str "client:" (random-uuid)))
                     :ui {:is-mouse-down? false
                          :canvas {:id "canvas"}
-                         :pen {:color "#0000FF"
+                         :pen {:color "#5D7EBB"
                                :radius 3
                                :example-id "pen-example"
                                }
