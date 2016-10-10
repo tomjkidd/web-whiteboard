@@ -88,7 +88,7 @@ HistroyMapEntry :: HashMap
 ```
 
 At this point, I figured it might be nice to actually capture some of this
-structure as code, so I added Prismatic/schema to the project and a [data definition file](./src/web_whiteboard/client/schema/core.cjlc).
+structure as code, so I added Prismatic/schema to the project and a [data definition file](../src/web_whiteboard/client/schema/core.cjlc).
 
 # The How
 
