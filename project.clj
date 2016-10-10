@@ -21,6 +21,7 @@
                  ;[com.taoensso/timbre "4.7.4"]
                  [levand/immuconf "0.1.0"]
                  [com.stuartsierra/component "0.3.1"]
+                 [prismatic/schema "1.1.3"]
                  ]
   :jvm-opts ^:replace ["-Xmx1g" "-server"]
   :plugins [[lein-npm "0.6.1"]
