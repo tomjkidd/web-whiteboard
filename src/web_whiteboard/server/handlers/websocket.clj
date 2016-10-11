@@ -65,6 +65,8 @@
    :pen-down msg-handler
    :pen-up msg-handler
    :clear-canvas msg-handler
+   :undo-stroke msg-handler
+   :redo-stroke msg-handler
    :default unknown-handler})
 
 (defn- create-dispatch-handler

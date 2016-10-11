@@ -81,7 +81,7 @@
                                                              :prev ui-action})))
     
     (dom/append canvas
-                (create-circle app-state (assoc-in data [:id] (random-uuid))))
+                (create-circle app-state (assoc-in data [:id] (str "circle" path-id))))
     (dom/append canvas
                 (create-path app-state draw-state updated-data))))
 

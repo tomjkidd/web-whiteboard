@@ -78,8 +78,7 @@
                       (sl/->SmoothLineMode))
         ]
     (tap ws-mult hws-chan)
-    (tap ws-mult ui-chan)
-    
+    (tap ws-mult ui-chan)        
     (atom {:server {:ws nil
                     :queue []
                     :url ws-url}
@@ -92,7 +91,8 @@
                                :example-id "pen-example"
                                }
                          :drawing-algorithm {:mode mode-record
-                                             :state (init-draw-state mode-record)}}}
+                                             :state (init-draw-state mode-record)}
+                         :history-map {}}}
            
            :whiteboard {:id (get query-params :wid (str "whiteboard:" (random-uuid)))}
            

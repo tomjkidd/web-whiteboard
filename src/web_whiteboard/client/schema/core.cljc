@@ -13,6 +13,12 @@
    :r s/Num
    :fill s/Str})
 
+(def UiActionType
+  "The set of keywords for the valid types of UiAction"
+  #{:pen-down :pen-move :pen-up
+    :clear-canvas
+    :undo-stroke})
+
 (def UiAction
   "Schema for the actions that are sent to the ui channel throughout the system
 
@@ -25,8 +31,7 @@
   {:type s/Keyword
    :client-id s/Str
    :whiteboard-id s/Str
-   (s/optional-key :data) s/Any
-   })
+   (s/optional-key :data) s/Any})
 
 (def Stroke
   "Schema to define a stroke
@@ -47,6 +52,8 @@
 
 (def HistoryMapEntry
   "The per-client state needed to support undo/redo
+
+  kept in app-state [:client :ui :history-map]
 
   :stroke-stack is a history of the strokes the user has made
   :undo-stack is a stack for allowing undo/redo operations"

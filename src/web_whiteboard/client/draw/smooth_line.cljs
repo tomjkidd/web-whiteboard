@@ -29,6 +29,23 @@
                                                              :prev new-ui-action})))
     (dom/set-attr path-element :d new-d-attr)))
 
+(defn on-undo-stroke
+  "Remove the previous line (svg circle,path elements) from the dom"
+  [app-state draw-state ui-action]
+  (let [s @app-state
+        {:keys [client-id]} ui-action
+        entry (get-in s [:client :ui :history-map client-id])]
+    (when entry
+      (let [{:keys [stroke-stack]} entry
+            ui-action (first (last stroke-stack))
+            path-id (get-in ui-action [:data :id])
+            path-element (dom/by-id (str path-id))
+            circle-element (dom/by-id (str "circle" path-id))]
+        (when path-element
+          (.removeChild (.-parentNode path-element) path-element))
+        (when circle-element
+          (.removeChild (.-parentNode circle-element) circle-element))))))
+
 (defn draw-handler
   [app-state draw-state {:keys [type] :as ui-action}]
   (let [s @app-state
@@ -38,7 +55,8 @@
       :register (.log js/console "Ignore register event")
       :pen-down (l/on-pen-down app-state draw-state ui-action)
       :pen-move (on-pen-move app-state draw-state ui-action)
-      :pen-up (.log js/console "TODO: ignore, that is your queue to stop drawing"))))
+      :pen-up (.log js/console "TODO: ignore, that is your queue to stop drawing")
+      :undo-stroke (on-undo-stroke app-state draw-state ui-action))))
 
 (defrecord SmoothLineMode []
   core/DrawingMode

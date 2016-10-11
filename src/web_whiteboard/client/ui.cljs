@@ -11,29 +11,72 @@
   (:import [goog.events EventType KeyHandler KeyCodes]))
 
 (defn ui-action->chan
-  [app-state ui-action]
+  [chan ui-action]
+  (go
+    (>! chan ui-action)))
+
+(defn stroke->ui-chan
+  [app-state stroke]
   (let [s @app-state
         ui-chan (get-in s [:channels :ui :to])]
     (go
-      (>! ui-chan ui-action))))
+      (loop [cur (first stroke)
+             rem (rest stroke)]
+        (when (not (empty? cur))
+          (>! ui-chan cur)
+          (recur (first rem) (rest rem)))))))
+
+(defn ui-action->ui-chan
+  [app-state ui-action]
+  (let [s @app-state
+        ui-chan (get-in s [:channels :ui :to])]
+    (ui-action->chan ui-chan ui-action)))
+
+(defn ui-action->ws-chan
+  [app-state ui-action]
+  (let [s @app-state
+        ws-chan (get-in s [:channels :ws-server :to])]
+    (ui-action->chan ws-chan ui-action)))
+
+(defn put-ui-action-on-ui-and-ws-chans
+  [app-state ui-action]
+  (ui-action->ws-chan app-state ui-action)
+  (ui-action->ui-chan app-state ui-action))
+
+(defn- publish-ui-action-wrapper
+  "Returns a wrapper function that take a ui-action and publishes it
+  to the ui-chan and ws-server-to-chan."
+  [ui-action]
+  (fn [app-state]
+    (let [s @app-state
+          cid (get-in s [:client :id])
+          wid (get-in s [:whiteboard :id])
+          ui-action (merge {:client-id cid
+                            :whiteboard-id wid}
+                           ui-action)]
+      (put-ui-action-on-ui-and-ws-chans app-state ui-action))))
 
 (def keyboard-mappings
-  {KeyCodes.C {:doc "Clear the canvas"
+  {KeyCodes.U {:doc "Undo the last stroke"
+               :key "U"
+               :key-code KeyCodes.U
+               :command-name "Undo"
+               :fn (publish-ui-action-wrapper {:type :undo-stroke
+                                               :data nil})
+               :args []}
+   KeyCodes.R {:doc "Redo the last undone stroke"
+               :key "R"
+               :key-code KeyCodes.R
+               :command-name "Redo"
+               :fn (publish-ui-action-wrapper {:type :redo-stroke
+                                               :data nil})
+               :args []}
+   KeyCodes.C {:doc "Clear the canvas"
                :key "C"
                :key-code KeyCodes.C
                :command-name "Clear"
-               :fn (fn [app-state]
-                     (let [s @app-state
-                           cid (get-in s [:client :id])
-                           wid (get-in s [:whiteboard :id])
-                           to-ws-server-chan (get-in s [:channels :ws-server :to])
-                           action {:type :clear-canvas
-                                   :client-id cid
-                                   :whiteboard-id wid
-                                   :data nil}]
-                       (go
-                         (>! to-ws-server-chan action))
-                       (ui-action->chan app-state action)))
+               :fn (publish-ui-action-wrapper {:type :clear-canvas
+                                               :data nil})
                :args []}
    KeyCodes.S {:doc "Save the canvas as SVG"
                :key "S"
@@ -238,6 +281,88 @@
                      (when-let [{:keys [fn args]} (keyboard-mappings (.-keyCode e))]
                        (apply fn (concat [app-state] args)))))))
 
+(defn update-history-state
+  [app-state ui-action]
+  (let [s @app-state
+        {:keys [type client-id]} ui-action
+        history-map (get-in s [:client :ui :history-map])
+        client-entry (get history-map client-id {:stroke-stack []
+                                                 :undo-stack []})
+        print-client-entry (fn [entry]
+                             (let [{:keys [stroke-stack undo-stack]} entry]
+                               (str
+                                "stroke-stack"
+                                (map #(str (-> % first :data :id) \newline) stroke-stack)
+                                \newline
+                                "undo-stack"
+                                (map #(str (-> % first :data :id) \newline) undo-stack))))
+        
+        start-new-stroke
+        (fn [entry ui-action]
+          (let [old-stack (get entry :stroke-stack)
+                stroke [ui-action]
+                new-stack (conj old-stack stroke)]
+            (assoc-in entry [:stroke-stack] new-stack)))
+
+        update-existing-stroke
+        (fn [entry ui-action]
+          (let [old-stack (get entry :stroke-stack)
+                stroke (peek old-stack)
+                updated-stroke (conj stroke ui-action)
+                new-stack (conj (pop old-stack) updated-stroke)]
+            (assoc-in entry [:stroke-stack] new-stack)))
+
+        end-stroke
+        (fn [entry ui-action]
+          (update-existing-stroke entry ui-action))
+
+        undo-stroke
+        (fn [entry ui-action]
+          (let [{:keys [stroke-stack undo-stack]} entry]
+            (if (empty? stroke-stack)
+              entry
+              (let [remaining-strokes (pop stroke-stack)
+                    last-stroke (peek stroke-stack)
+                    updated-entry (-> entry
+                                      (assoc-in [:stroke-stack] remaining-strokes)
+                                      (assoc-in [:undo-stack] (conj undo-stack last-stroke)))]
+                updated-entry))))
+
+        redo-stroke
+        (fn [entry ui-action]
+          (let [{:keys [stroke-stack undo-stack]} entry]
+            (if (empty? undo-stack)
+              [nil entry]
+              (let [to-redo (peek undo-stack)
+                    remaining-undo (pop undo-stack)
+                    updated-entry (-> entry
+                                      (assoc-in [:undo-stack] remaining-undo))]
+                [to-redo updated-entry]))))
+
+        action-handler
+        (fn [entry ui-action]
+          (let [{:keys [type]} ui-action
+
+                [to-redo redo-entry]
+                (when (= type :redo-stroke) (redo-stroke entry ui-action))
+                
+                new-entry
+                (cond (= type :pen-down) (start-new-stroke entry ui-action)
+                      (= type :pen-move) (update-existing-stroke entry ui-action)
+                      (= type :pen-up) (end-stroke entry ui-action)
+                      (= type :clear-canvas) entry
+                      (= type :undo-stroke) (undo-stroke entry ui-action)
+                      (= type :redo-stroke) redo-entry)]
+            {:updated-history-map (assoc-in history-map [client-id] new-entry)
+             :after-update #(when to-redo
+                              (stroke->ui-chan app-state to-redo))}))
+        
+        {:keys [updated-history-map after-update]}
+        (action-handler client-entry ui-action)]
+    (swap! app-state (fn [prev]
+                       (assoc-in prev [:client :ui :history-map] updated-history-map)))
+    (after-update)))
+
 (defn ui-chan-handler
   "Handle messages to the ui"
   [app-state ui-action]
@@ -245,12 +370,17 @@
         action-type (:type ui-action)
         mode-record (get-in s [:client :ui :drawing-algorithm :mode])
         draw-state (get-in s [:client :ui :drawing-algorithm :state])]
+    
+    ; NOTE: :redo-stroke will use update-history state to put previous stroke's
+    ; ui-actions onto the ui-chan, so it is ignored here.
     (cond
-      (contains? #{:pen-move :pen-down :pen-up} action-type)
+      (contains? #{:pen-move :pen-down :pen-up :undo-stroke} action-type)
       (draw-handler mode-record app-state draw-state ui-action)
       
       (= :clear-canvas action-type)
-      (dom/remove-children (dom/by-id "canvas")))))
+      (dom/remove-children (dom/by-id "canvas")))
+
+    (update-history-state app-state ui-action)))
 
 (defn listen-to-ui-chan
   "Listen for messages coming from the to ui channel"

@@ -105,7 +105,7 @@ into the :undo-stack. It also requires undoing the ui-action in the actual
 canvas. I think this will have to be specific to each drawing mode... For
 smooth-line mode, which is where I'll focus the effort, there is an svg path
 created for each line. With the pen-down, `(first stroke)`, we should have
-access to the id of the path, and we can grad and remove it from the drawing.
+access to the id of the path, and we can grab and remove it from the drawing.
 
 Redo should also work in a simple manner. All that is needed is to pop the 
 stroke off of the :undo-stack and put all of the ui-actions of the stroke
