@@ -255,8 +255,8 @@
         svg (dom/create-element
              [:svg
               {:id canvas-id
-               :width 1000
-               :height 500
+               :width (get-in s [:client :ui :width])
+               :height (get-in s [:client :ui :height])
                :style "display: block; margin: 0 auto; background-color: white; cursor: default;"
                :onmousedown (set-mousedown-to true)
                :onmouseup (set-mousedown-to false)
