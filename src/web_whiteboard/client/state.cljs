@@ -6,7 +6,7 @@
             [web-whiteboard.client.draw.circle :as c]
             [web-whiteboard.client.draw.line :as l]
             [web-whiteboard.client.draw.smooth-line :as sl]
-            [cljs.core.async :refer [chan mult tap]]
+            [cljs.core.async :refer [chan mult tap pipe]]
             [clojure.string]))
 
 (defn get-query-params
@@ -64,9 +64,7 @@
   [ws-url]
   (let [from-ws-server (chan)
         to-ws-server (chan)
-        hws-chan (chan)
         ui-chan (chan)
-        ws-mult (mult from-ws-server)
         maybe-mode (get query-params :mode)
         mode (if (nil? maybe-mode)
                :smooth-line
@@ -76,8 +74,7 @@
                       :line (l/->LineMode)
                       :smooth-line (sl/->SmoothLineMode)
                       (sl/->SmoothLineMode))]
-    (tap ws-mult hws-chan)
-    (tap ws-mult ui-chan)        
+    (pipe from-ws-server ui-chan)        
     (atom {:server {:ws nil
                     :queue []
                     :url ws-url}
@@ -102,7 +99,6 @@
                      :reader (transit/reader :json)}
            :channels {:ws-server {:from from-ws-server
                                   :to to-ws-server}
-                      :hws hws-chan
                       :ui {:to ui-chan}}
            :connected false})))
 

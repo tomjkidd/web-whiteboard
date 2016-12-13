@@ -61,18 +61,6 @@
         tr (get-in s [:transit :reader])]
     (transit/read tr event.data)))
 
-;TODO: register new clients that are also drawing on the whiteboard
-(defn register-handler
-  [app-state msg]
-  ;(.log js/console (str "register-handler called" msg))
-  )
-
-;TODO: handle drawing to the ui for connected clients
-(defn pen-move-handler
-  [app-state msg]
-  ;(.log js/console (str "pen-move-handler" msg))
-  )
-
 (defn open-handler
   "A handler for :onopen event of WebSocket"
   [app-state ws msg]
@@ -103,26 +91,6 @@
   (let [s @app-state
         ch (get-in s [:channels :ws-server :from])]
     (put! ch data)))
-
-(defn websocket-chan-handler
-  "A handler for :onmessage event of WebSocket, to distinguish between them"
-  [app-state msg]
-  (case (:type msg)
-    :register (register-handler app-state msg)
-    :pen-move (pen-move-handler app-state msg)
-    :none))
-
-(defn listen-to-websocket-from-chan
-  "Listen for messages coming from the websocket server"
-  [app-state] 
-  (go
-    (let [s @app-state
-          ch (get-in s [:channels :hws])]
-      (loop []
-        (let [data (<! ch)]
-          (do
-            (websocket-chan-handler app-state data)
-            (recur)))))))
 
 (defn listen-to-websocket-to-chan
   "Listen for messages that the client wants to send to the websocket server"
