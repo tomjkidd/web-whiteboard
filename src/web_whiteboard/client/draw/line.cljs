@@ -23,7 +23,7 @@
                         :cy cy
                         :r r
                         :fill fill
-                        :style "pointer-events: none;"
+                        :style "opacity: 1; cursor: default; pointer-events: none;"
                         }
                        []]))
 
@@ -38,7 +38,7 @@
                           :stroke-width (* 2 r) ; d = 2 r
                           :stroke-linejoin "round"
                           :stroke-linecap "round"
-                          :style "pointer-events: none;"
+                          :style "opacity: 1; cursor: default; pointer-events: none;"
                           }
                          []]))
 

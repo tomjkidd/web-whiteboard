@@ -6,16 +6,17 @@
             [goog.events :as events]
             [cljs.core.async :as async
              :refer [>! <! put! chan alts!]]
-            [web-whiteboard.client.handlers.websocket :as hws]
             [web-whiteboard.client.draw.core :refer [event-handler draw-handler]])
   (:import [goog.events EventType KeyHandler KeyCodes]))
 
 (defn ui-action->chan
+  "Puts a ui-action onto a channel"
   [chan ui-action]
   (go
     (>! chan ui-action)))
 
 (defn stroke->ui-chan
+  "Logically puts a stroke onto the ui-chan, as a series of puts for each ui-action in the stroke list"
   [app-state stroke]
   (let [s @app-state
         ui-chan (get-in s [:channels :ui :to])]
@@ -26,17 +27,20 @@
           (>! ui-chan cur)
           (recur (first rem) (rest rem)))))))
 
+(defn ui-action->chan-helper
+  "Convenience function to specify which channel to put to through a list of keys in app-state"
+  [app-state ui-action key-path]
+  (let [s @app-state
+        ch (get-in s key-path)]
+    (ui-action->chan ch ui-action)))
+
 (defn ui-action->ui-chan
   [app-state ui-action]
-  (let [s @app-state
-        ui-chan (get-in s [:channels :ui :to])]
-    (ui-action->chan ui-chan ui-action)))
+  (ui-action->chan-helper app-state ui-action [:channels :ui :to]))
 
 (defn ui-action->ws-chan
   [app-state ui-action]
-  (let [s @app-state
-        ws-chan (get-in s [:channels :ws-server :to])]
-    (ui-action->chan ws-chan ui-action)))
+  (ui-action->chan-helper app-state ui-action [:channels :ws-server :to]))
 
 (defn put-ui-action-on-ui-and-ws-chans
   [app-state ui-action]
@@ -102,19 +106,6 @@
   [state keys new-val]
   (assoc-in state (concat [:client :ui] keys) new-val))
 
-(defn event->point-data
-  "Turn an event with clientX, clientY into point data"
-  [app-state event]
-  (let [s @app-state
-        r (get-ui s [:pen :radius])
-        c (get-ui s [:pen :color])]
-    {:shape :point
-     :id (random-uuid)
-     :x (.-clientX event)
-     :y (.-clientY event)
-     :radius r
-     :color c}))
-
 (defn pen-event-handler
   "Handle pen event, possibly updating the dom"
   ([app-state event]
@@ -158,10 +149,10 @@
                        :onchange (change-pen-config app-state :color)}
                       []]
         size-picker [:input
-                    {:id "size-picker"
-                     :type "range"
-                     :min 1 :max 31 :value radius :step 3
-                     :onchange (change-pen-config app-state :radius)}
+                     {:id "size-picker"
+                      :type "range"
+                      :min 1 :max 31 :value radius :step 3
+                      :onchange (change-pen-config app-state :radius)}
                      []]
         pen-example [:svg
                      {:width 100

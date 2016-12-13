@@ -16,3 +16,4 @@ pom.xml
 /repl/
 .lein-failures
 .cljs_rhino_repl
+.nrepl-port

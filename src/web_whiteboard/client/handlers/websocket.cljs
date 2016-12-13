@@ -82,7 +82,7 @@
 
   (swap! app-state (fn [prev]
                      (-> (assoc-in prev [:server :ws] ws)
-                         (assoc  :connected true))))
+                         (assoc :connected true))))
 
   (register-client app-state))
 

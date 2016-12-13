@@ -75,8 +75,7 @@
                       :circle (c/->CircleMode)
                       :line (l/->LineMode)
                       :smooth-line (sl/->SmoothLineMode)
-                      (sl/->SmoothLineMode))
-        ]
+                      (sl/->SmoothLineMode))]
     (tap ws-mult hws-chan)
     (tap ws-mult ui-chan)        
     (atom {:server {:ws nil
@@ -90,8 +89,7 @@
                          :height (get query-params :h 500)
                          :pen {:color "#5D7EBB"
                                :radius 3
-                               :example-id "pen-example"
-                               }
+                               :example-id "pen-example"}
                          :drawing-algorithm {:mode mode-record
                                              :state (init-draw-state mode-record)}
                          :history-map {}}}
