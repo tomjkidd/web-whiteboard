@@ -6,93 +6,13 @@
             [goog.events :as events]
             [cljs.core.async :as async
              :refer [>! <! put! chan alts!]]
-            [web-whiteboard.client.draw.core :refer [event-handler draw-handler]])
+            [web-whiteboard.client.ui.core :refer [stroke->ui-chan
+                                                   put-ui-action-on-ui-and-ws-chans
+                                                   publish-ui-action-wrapper]]
+            [web-whiteboard.client.draw.core :refer [event-handler draw-handler]]
+            [web-whiteboard.client.ui.keybindings :refer [listen-to-keybindings
+                                                          create-keyboard-shortcut-menu]])
   (:import [goog.events EventType KeyHandler KeyCodes]))
-
-(defn ui-action->chan
-  "Puts a ui-action onto a channel"
-  [chan ui-action]
-  (go
-    (>! chan ui-action)))
-
-(defn stroke->ui-chan
-  "Logically puts a stroke onto the ui-chan, as a series of puts for each ui-action in the stroke list"
-  [app-state stroke]
-  (let [s @app-state
-        ui-chan (get-in s [:channels :ui :to])]
-    (go
-      (loop [cur (first stroke)
-             rem (rest stroke)]
-        (when (not (empty? cur))
-          (>! ui-chan cur)
-          (recur (first rem) (rest rem)))))))
-
-(defn ui-action->chan-helper
-  "Convenience function to specify which channel to put to through a list of keys in app-state"
-  [app-state ui-action key-path]
-  (let [s @app-state
-        ch (get-in s key-path)]
-    (ui-action->chan ch ui-action)))
-
-(defn ui-action->ui-chan
-  [app-state ui-action]
-  (ui-action->chan-helper app-state ui-action [:channels :ui :to]))
-
-(defn ui-action->ws-chan
-  [app-state ui-action]
-  (ui-action->chan-helper app-state ui-action [:channels :ws-server :to]))
-
-(defn put-ui-action-on-ui-and-ws-chans
-  [app-state ui-action]
-  (ui-action->ws-chan app-state ui-action)
-  (ui-action->ui-chan app-state ui-action))
-
-(defn- publish-ui-action-wrapper
-  "Returns a wrapper function that take a ui-action and publishes it
-  to the ui-chan and ws-server-to-chan."
-  [ui-action]
-  (fn [app-state]
-    (let [s @app-state
-          cid (get-in s [:client :id])
-          wid (get-in s [:whiteboard :id])
-          ui-action (merge {:client-id cid
-                            :whiteboard-id wid}
-                           ui-action)]
-      (put-ui-action-on-ui-and-ws-chans app-state ui-action))))
-
-(def keyboard-mappings
-  {KeyCodes.U {:doc "Undo the last stroke"
-               :key "U"
-               :key-code KeyCodes.U
-               :command-name "Undo"
-               :fn (publish-ui-action-wrapper {:type :undo-stroke
-                                               :data nil})
-               :args []}
-   KeyCodes.R {:doc "Redo the last undone stroke"
-               :key "R"
-               :key-code KeyCodes.R
-               :command-name "Redo"
-               :fn (publish-ui-action-wrapper {:type :redo-stroke
-                                               :data nil})
-               :args []}
-   KeyCodes.C {:doc "Clear the canvas"
-               :key "C"
-               :key-code KeyCodes.C
-               :command-name "Clear"
-               :fn (publish-ui-action-wrapper {:type :clear-canvas
-                                               :data nil})
-               :args []}
-   KeyCodes.S {:doc "Save the canvas as SVG"
-               :key "S"
-               :key-code KeyCodes.S
-               :command-name "Save"
-               :fn (fn [app-state]
-                     ;TODO: Should save come in through the ui-action channel?
-                     ;For now I didn't think it is necessary.
-                     (let [s @app-state
-                           canvas-id (get-in s [:client :ui :canvas :id])
-                           svg-element (dom/by-id canvas-id)]
-                       (f/save-as-svg svg-element "web-whiteboard.svg")))}})
 
 (defn- get-ui
   "Convenience for reading ui state
@@ -169,66 +89,6 @@
       {:id "pen-options"}
       [color-picker size-picker pen-example]])))
 
-;; TODO: Is there a better way to manage the CSS stuff than this?
-(defn create-keyboard-shortcut-menu
-  "Create the user interface for the keyboard shortcut menu"
-  [app-state]
-  (let [light-text "color: #FAFFFA;"
-        less-light-text "color: #EFEFEF;"
-        font-common "font-family: 'Lato', sans-serif; font-weight: 300;"
-        font-accent "font-family: monospace; font-weight: 300;"
-        header-background "background-color: #353535;"
-        item-background "background-color: #444444;"
-        border-style "border-bottom: 1px #777777 solid;"
-        padding-style "padding: 3px;"
-
-        header-style (str "font-size: 20px;"
-                          light-text
-                          font-common
-                          padding-style
-                          header-background
-                          border-style)
-
-        item-style (str "padding: 8px;"
-                        item-background
-                        border-style)
-
-        badge-style (str light-text
-                         font-accent
-                         padding-style
-                         "font-size: 15px;"
-                         "border: 2px #DDDDDD solid;"
-                         "border-radius: 5px;"
-                         "cursor: pointer;")
-
-        command-style (str less-light-text
-                           font-accent
-                           padding-style
-                           "padding-left: 6px;"
-                           "font-size: 15px;")
-        
-        doc-style (str font-common
-                       padding-style
-                       "font-size: 12px;"
-                       "color: #999999;")
-                        
-        create-menu-item (fn [{:keys [key key-code command-name doc] :as menu-item}]
-                           [:div {:class "kb-menu-item" :style item-style}
-                            [[:span
-                              {:class "kb-menu-key" :style badge-style
-                               :onclick (fn [e]
-                                          (when-let [{:keys [fn args]} (keyboard-mappings key-code)]
-                                            (apply fn (concat [app-state] args))))}
-                              [[:text {} key]]]
-                             [:span {:class "kb-menu-command-name" :style command-style} [[:text {} command-name]]]
-                             [:span {:class "kb-menu-doc" :style doc-style} [[:text {} doc]]]]])
-        header [:div {:id "kb-menu-header" :style header-style} [[:text {} "Keyboard Shortcuts"]]]
-        menu-items (vec (map create-menu-item (vals keyboard-mappings)))]
-    (dom/create-element
-     [:div
-      {:id "keyboard-shortcut-menu"}
-      (cons header menu-items)])))
-
 ;TODO: onmouseout should generate a pen-up event. This will prevent leaving the
 ;svg area from hanging functionality up in weird ways
 (defn create-drawing-ui
@@ -261,16 +121,6 @@
     (dom/append app-element svg)
     (dom/append app-element pen-config)
     (dom/append app-element keyboard-shortcut-menu)))
-
-(defn listen-to-keybindings
-  "Register to listen for keybinding events"
-  [app-state]
-  (let [kh (KeyHandler. js/document)]
-    (events/listen kh
-                   KeyHandler.EventType.KEY
-                   (fn [e]
-                     (when-let [{:keys [fn args]} (keyboard-mappings (.-keyCode e))]
-                       (apply fn (concat [app-state] args)))))))
 
 (defn update-history-state
   [app-state ui-action]
