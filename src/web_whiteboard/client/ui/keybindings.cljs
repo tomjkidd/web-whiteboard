@@ -4,7 +4,8 @@
   (:require [carafe.dom :as dom]
             [carafe.file :as f]
             [goog.events :as events]
-            [web-whiteboard.client.ui.core :refer [publish-ui-action-wrapper]])
+            [web-whiteboard.client.ui.core :refer [publish-ui-action-wrapper]]
+            [goog.math])
   (:import [goog.events EventType KeyHandler KeyCodes]))
 
 (def keyboard-menu-item-data-definitions
@@ -93,6 +94,22 @@
             {}
             kb-color-tuples)))
 
+(defn get-high-contrast-color
+  "Determines a high-contrast color relative to a given one.
+
+  Averages each RGB component, and uses a cutoff at 128 to pick"
+  [css-hex]
+  (let [segments (->> (subs css-hex 1)
+                      (seq)
+                      (partition 2)
+                      (map #(goog.string/parseInt (apply str %))))
+        avg (apply goog.math/average segments)]
+    (if (< avg 128)
+      "#DDDDDD"
+      "#333333")))
+
+
+
 (def keybinding-handlers
   "All of the available keybinding handlers for the user interface"
   (merge pen-color-keybinding-handlers
@@ -102,13 +119,13 @@
   "Determines the key-binding, based on a DOM event"
   [e]
   (reduce (fn [acc [include? k]]
-                            (if include?
-                              (conj acc k)
-                              acc))
-                          #{(.-keyCode e)}
-                          (map vector
-                               [e.ctrlKey e.shiftKey]
-                               [KeyCodes.CTRL KeyCodes.SHIFT])))
+            (if include?
+              (conj acc k)
+              acc))
+          #{(.-keyCode e)}
+          (map vector
+               [e.ctrlKey e.shiftKey]
+               [KeyCodes.CTRL KeyCodes.SHIFT])))
 
 (defn keybinding-dispatcher
   "Routes a key-binding to the proper keybinding-handler function"
@@ -122,6 +139,41 @@
   (fn [e]
     (let [key-binding (event->key-binding e)]
       (keybinding-dispatcher app-state e key-binding))))
+
+(defn create-pen-color-tiles
+  "Creates a visual aid to show how numbers map to colors"
+  [app-state]
+  (let [tile-style ""
+        create-pen-color-tile (fn [[n color key-binding]]
+                                (let [font-common "font-family: 'Lato', sans-serif; font-weight: 300;"
+                                      font-accent "font-family: monospace; font-weight: 300;"
+                                      letter-color (get-high-contrast-color color)
+                                      swatch-style (str "background-color: " color ";"
+                                                        "color: " letter-color ";"
+                                                        "width: 25px;"
+                                                        "height: 25px;"
+                                                        "display: inline-block;"
+                                                        "text-align: center;"
+                                                        "border: 2px #DDDDDD solid;"
+                                                        "border-radius: 5px;"
+                                                        "margin: 0px 3px;"
+                                                        "cursor: pointer;")]
+                                  [:div
+                                   {:class "kb-color-tile"
+                                    :style swatch-style
+                                    :onclick (fn [e]
+                                               (keybinding-dispatcher app-state e key-binding))}
+                                   [[:span {:style (str "vertical-align: middle; line-height: 25px;"
+                                                        font-accent
+                                                        "font-weight: 800;")}
+                                     [[:text {} (str n)]]]]]))
+        ns (map #(mod % 10) (range 1 (inc 10)))
+        kb-color-tuples (map vector  ns pen-color-values pen-keybindings)
+        pen-color-tiles (map create-pen-color-tile kb-color-tuples)]
+    [:div
+     {:class "kb-color-tiles"
+      :style tile-style}
+     pen-color-tiles]))
 
 (defn create-keyboard-shortcut-menu
   "Create the user interface for the keyboard shortcut menu"
@@ -175,11 +227,27 @@
                              [:span {:class "kb-menu-command-name" :style command-style} [[:text {} command-name]]]
                              [:span {:class "kb-menu-doc" :style doc-style} [[:text {} doc]]]]])
         header [:div {:id "kb-menu-header" :style header-style} [[:text {} "Keyboard Shortcuts"]]]
-        menu-items (vec (map create-menu-item keyboard-menu-item-data-definitions))]
+        menu-items (vec (map create-menu-item keyboard-menu-item-data-definitions))
+        color-tiles (create-pen-color-tiles app-state)
+        create-tile-footer (fn [color-tiles]
+                             [:div {:class "kb-menu-item" :style (str item-background border-style)}
+                              [[:span
+                                {:class "kb-menu-key" :style ""}
+                                [[:text {} ""]]]
+                               [:span {:class "kb-menu-command-name" :style (str command-style
+                                                                                 "line-height: 35px;"
+                                                                                 "vertical-align: middle;")} [[:text {} "Palette"]]]
+                               [:span {:class "kb-menu-doc" :style (str doc-style
+                                                                        "display: inline-block;"
+                                                                        "line-height: 35px;"
+                                                                        "vertical-align: middle;")} [color-tiles]]]])
+        color-tile-footer (create-tile-footer color-tiles)]
     (dom/create-element
      [:div
       {:id "keyboard-shortcut-menu"}
-      (cons header menu-items)])))
+      ;(cons header menu-items)
+      (concat (cons header menu-items)
+              [color-tile-footer])])))
 
 (defn listen-to-keybindings
   "Register the user interface to listen for keybinding events"
