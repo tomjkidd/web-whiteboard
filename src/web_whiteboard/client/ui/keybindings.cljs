@@ -89,7 +89,7 @@
                      (fn [_ e]
                        (let [cp (dom/by-id "color-picker")
                              change-event (js/Event. "change")]
-                         (dom/set-attr cp :value c)
+                         (set! (.-value cp) c)
                          (.dispatchEvent cp change-event)))))
             {}
             kb-color-tuples)))
@@ -107,8 +107,6 @@
     (if (< avg 128)
       "#DDDDDD"
       "#333333")))
-
-
 
 (def keybinding-handlers
   "All of the available keybinding handlers for the user interface"
