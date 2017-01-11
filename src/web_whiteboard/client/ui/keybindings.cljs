@@ -4,9 +4,22 @@
   (:require [carafe.dom :as dom]
             [carafe.file :as f]
             [goog.events :as events]
-            [web-whiteboard.client.ui.core :refer [publish-ui-action-wrapper]]
+            [web-whiteboard.client.ui.core :refer [publish-ui-action-wrapper constants]]
             [goog.math])
   (:import [goog.events EventType KeyHandler KeyCodes]))
+
+;; TODO: This might be useful in a library meant to simulate UI actions, instead of here
+(defn- trigger-change-pen-size
+  "Trigger a dom event to change the pen size, if valid"
+  [step-fn]
+  (let [cp (dom/by-id "size-picker")
+        prev (int (.-value cp))
+        new (step-fn prev)
+        change-event (js/Event. "change")]
+    (when (and (<= new (get-in constants [:size-picker :max]))
+               (>= new (get-in constants [:size-picker :min])))
+      (set! (.-value cp) (str new))
+      (.dispatchEvent cp change-event))))
 
 (def keyboard-menu-item-data-definitions
   "Data-based information about key-bindings that should be put into the keyboard shortcut menu"
@@ -42,7 +55,19 @@
                 canvas-id (get-in s [:client :ui :canvas :id])
                 svg-element (dom/by-id canvas-id)]
             (f/save-as-svg svg-element "web-whiteboard.svg")))
-    :args []}])
+    :args []}
+   {:doc "Increase the radius of the pen "
+    :key "="
+    :key-binding #{KeyCodes.EQUALS}
+    :command-name "Increase pen size"
+    :fn (fn [app-state]
+          (trigger-change-pen-size (fn [prev] (+ prev (get-in constants [:size-picker :step])))))}
+   {:doc "Decrease the radius of the pen"
+    :key "-"
+    :key-binding #{KeyCodes.DASH}
+    :command-name "Decrease pen size"
+    :fn (fn [app-state]
+          (trigger-change-pen-size (fn [prev] (- prev (get-in constants [:size-picker :step])))))}])
 
 (defn- keybinding-applier
   "A private helper to make the menu items consistent in how they work"

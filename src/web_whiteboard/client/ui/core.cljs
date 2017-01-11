@@ -4,6 +4,12 @@
   (:require [cljs.core.async :as async
              :refer [>! <! put! chan alts!]]))
 
+(def constants
+  "Useful configuration constants"
+  {:size-picker {:min 1
+                 :max 31
+                 :step 3}})
+
 (defn ui-action->chan
   "Puts a ui-action onto a channel"
   [chan ui-action]

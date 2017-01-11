@@ -8,7 +8,8 @@
              :refer [>! <! put! chan alts!]]
             [web-whiteboard.client.ui.core :refer [stroke->ui-chan
                                                    put-ui-action-on-ui-and-ws-chans
-                                                   publish-ui-action-wrapper]]
+                                                   publish-ui-action-wrapper
+                                                   constants]]
             [web-whiteboard.client.draw.core :refer [event-handler draw-handler]]
             [web-whiteboard.client.ui.keybindings :refer [listen-to-keybindings
                                                           create-keyboard-shortcut-menu]])
@@ -71,7 +72,10 @@
         size-picker [:input
                      {:id "size-picker"
                       :type "range"
-                      :min 1 :max 31 :value radius :step 3
+                      :min (get-in constants [:size-picker :min])
+                      :max (get-in constants [:size-picker :max])
+                      :value radius
+                      :step (get-in constants [:size-picker :step])
                       :onchange (change-pen-config app-state :radius)}
                      []]
         pen-example [:svg
