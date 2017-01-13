@@ -3,17 +3,14 @@
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.core.async :as async
              :refer [>! <! put! chan alts!]]
-            [web-whiteboard.client.handlers.websocket :as hws]))
+            [web-whiteboard.client.handlers.websocket :as hws]
+            [web-whiteboard.client.ui.core :refer [publish-ui-action]]))
 
 (defn base-pen-event-handler
   "All drawing modes will need to put actions onto the ui-chan.
   This function exists to help create a drawing mode"
   [app-state event event->data]
-  (let [s @app-state
-        cid (get-in s [:client :id])
-        wid (get-in s [:whiteboard :id])
-        to-ws-server-chan (get-in s [:channels :ws-server :to])
-        data (event->data app-state event)
+  (let [data (event->data app-state event)
         event-type (.-type event)
         event-keyword (keyword (str "on" event-type))
         action-type (case event-keyword
@@ -22,14 +19,8 @@
                       :onmouseup :pen-up
                       :onmouseleave :pen-up)
         action {:type action-type
-                :client-id cid
-                :whiteboard-id wid
-                :data data}
-        ui-chan (get-in s [:channels :ui :to])]
-    (go
-      (>! to-ws-server-chan action))
-    (go
-      (>! ui-chan action))))
+                :data data}]
+    (publish-ui-action app-state action)))
 
 (defn base-draw-handler
   "All actual drawing will need to turn actions into dom manipulation

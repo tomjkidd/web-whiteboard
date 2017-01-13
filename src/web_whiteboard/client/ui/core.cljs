@@ -48,15 +48,15 @@
   (ui-action->ws-chan app-state ui-action)
   (ui-action->ui-chan app-state ui-action))
 
-(defn- publish-ui-action-wrapper
-  "Returns a wrapper function that take a ui-action and publishes it
-  to the ui-chan and ws-server-to-chan."
-  [ui-action]
-  (fn [app-state]
-    (let [s @app-state
-          cid (get-in s [:client :id])
-          wid (get-in s [:whiteboard :id])
-          ui-action (merge {:client-id cid
-                            :whiteboard-id wid}
-                           ui-action)]
-      (put-ui-action-on-ui-and-ws-chans app-state ui-action))))
+(defn publish-ui-action
+  "Use app-state to associate :client-id and :whiteboard-id with a desired ui-action
+
+  Puts the ui-action on the ui and ws channels."
+  [app-state ui-action]
+  (let [s @app-state
+        cid (get-in s [:client :id])
+        wid (get-in s [:whiteboard :id])
+        ui-action (merge {:client-id cid
+                          :whiteboard-id wid}
+                         ui-action)]
+    (put-ui-action-on-ui-and-ws-chans app-state ui-action)))

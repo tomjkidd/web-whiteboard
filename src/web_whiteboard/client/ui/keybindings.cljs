@@ -4,7 +4,7 @@
   (:require [carafe.dom :as dom]
             [carafe.file :as f]
             [goog.events :as events]
-            [web-whiteboard.client.ui.core :refer [publish-ui-action-wrapper constants]]
+            [web-whiteboard.client.ui.core :refer [publish-ui-action constants]]
             [goog.math])
   (:import [goog.events EventType KeyHandler KeyCodes]))
 
@@ -27,23 +27,23 @@
     :key "U"
     :key-binding #{KeyCodes.U}
     :command-name "Undo"
-    :fn (publish-ui-action-wrapper {:type :undo-stroke
-                                    :data nil})
-    :args []}
+    :fn publish-ui-action
+    :args [{:type :undo-stroke
+            :data nil}]}
    {:doc "Redo the last undone stroke"
     :key "R"
     :key-binding #{KeyCodes.R}
     :command-name "Redo"
-    :fn (publish-ui-action-wrapper {:type :redo-stroke
-                                    :data nil})
-    :args []} 
+    :fn publish-ui-action 
+    :args [{:type :redo-stroke
+            :data nil}]} 
    {:doc "Clear the canvas"
     :key "C"
     :key-binding #{KeyCodes.C}
     :command-name "Clear"
-    :fn (publish-ui-action-wrapper {:type :clear-canvas
-                                    :data nil})
-    :args []}
+    :fn publish-ui-action
+    :args [{:type :clear-canvas
+            :data nil}]}
    {:doc "Save the canvas as SVG"
     :key "S"
     :key-binding #{KeyCodes.S}
