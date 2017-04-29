@@ -35,7 +35,8 @@
          canvas-id (get-ui s [:canvas :id])
          mode-record (get-ui s [:drawing-algorithm :mode])]
      (when (or override
-               (get-ui s [:is-mouse-down?]))
+               (get-ui s [:is-mouse-down?])
+               (= "mouseup" (.-type event)))
        (event-handler mode-record app-state event)))))
 
 (defn change-pen-config

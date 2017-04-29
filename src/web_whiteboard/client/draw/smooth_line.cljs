@@ -56,13 +56,15 @@
 
 (defn draw-handler
   [app-state draw-state {:keys [type] :as ui-action}]
+  (when (= :verbose (:log-level @app-state))
+    (.log js/console (str ":ui-action") (clj->js ui-action)))
   (let [s @app-state
         canvas-id (get-in s [:client :ui :canvas :id])]
     (case type
       :register (.log js/console "Ignore register event")
       :pen-down (l/on-pen-down app-state draw-state ui-action)
       :pen-move (on-pen-move app-state draw-state ui-action)
-      :pen-up (.log js/console "TODO: ignore, that is your queue to stop drawing")
+      :pen-up (on-pen-move app-state draw-state ui-action)
       :undo-stroke (on-undo-stroke app-state draw-state ui-action))))
 
 (defrecord SmoothLineMode []

@@ -2,7 +2,7 @@
   :description "A clojure/clojurescript whiteboard for interactive drawing in the browser"
   :url "https://github.com/tomjkidd/web-whiteboard.git"
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.9.229"]
+                 [org.clojure/clojurescript "1.9.521"]
                  [org.clojars.tomjkidd/carafe "0.1.0-SNAPSHOT"]
                  [info.sunng/ring-jetty9-adapter "0.9.5"]
                  [ring "1.5.0"]
@@ -38,8 +38,10 @@
               :compiler {
                  :output-to "resources/public/js/webwhiteboard.js"
                  :output-dir "resources/public/out"
+                 ;:optimizations :advanced
                  :optimizations :none
-                 :source-map true}}]}
+                 :source-map true
+                         }}]}
 
   :main ^:skip-aot web-whiteboard.server.core
   :profiles

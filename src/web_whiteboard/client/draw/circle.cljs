@@ -34,6 +34,8 @@
 
 (defn draw-handler
   [app-state draw-state ui-action]
+  (when (= :verbose (:log-level @app-state))
+    (.log js/console (str ":ui-action") (clj->js ui-action)))
   (let [s @app-state
         canvas-id (get-in s [:client :ui :canvas :id])]
     (dom/append (dom/by-id canvas-id)

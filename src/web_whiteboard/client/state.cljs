@@ -100,7 +100,11 @@
            :channels {:ws-server {:from from-ws-server
                                   :to to-ws-server}
                       :ui {:to ui-chan}}
-           :connected false})))
+           :connected false
+           :log-level (or (some->
+                           (get query-params :log-level)
+                           keyword)
+                          :none)})))
 
 (defn create-app-state
   "Create the app-state
